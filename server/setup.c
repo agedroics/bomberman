@@ -2,7 +2,7 @@
 
 int read_args(int argc, char **argv, struct sockaddr_in *addr) {
     int i;
-    int ip_set   = 0;
+    int ip_set = 0;
     int port_set = 0;
     memset(addr, 0, sizeof(struct sockaddr_in));
     addr->sin_family = AF_INET;
