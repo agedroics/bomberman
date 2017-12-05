@@ -1,8 +1,10 @@
 #include "player.h"
 
+pthread_mutex_t players_lock = PTHREAD_MUTEX_INITIALIZER;
 player *players = NULL;
 char *taken_slots = NULL;
 int player_count = 0;
+int max_players = 8;
 
 void create_player(int id, char *name) {
     player *player = players + id;
@@ -16,6 +18,13 @@ void create_player(int id, char *name) {
     player->count = 1;
     player->active_pwrups = 0;
     strcpy(player->name, name);
+}
+
+player *get_player(int id) {
+    if (taken_slots[id]) {
+        return players + id;
+    }
+    return NULL;
 }
 
 int add_player(char *name) {
@@ -35,6 +44,13 @@ int add_player(char *name) {
     }
     pthread_mutex_unlock(&players_lock);
     return id;
+}
+
+void remove_player(int id) {
+    pthread_mutex_lock(&players_lock);
+    taken_slots[id] = 0;
+    player_count--;
+    pthread_mutex_unlock(&players_lock);
 }
 
 void clear_players() {

@@ -5,7 +5,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <stdint.h>
-#include "../common/protocol.h"
+#include "../protocol.h"
 
 typedef struct player {
     char name[24];
@@ -22,13 +22,14 @@ typedef struct player {
     uint8_t active_pwrups;
 } player;
 
-extern pthread_mutex_t players_lock;
-extern player *players;
-extern char *taken_slots;
 extern int player_count;
 extern int max_players;
 
+player *get_player(int id);
+
 int add_player(char *name);
+
+void remove_player(int id);
 
 void clear_players();
 

@@ -1,5 +1,5 @@
 #include <unistd.h>
-#include "../common/protocol.h"
+#include "../protocol.h"
 #include "setup.h"
 #include "player.h"
 
@@ -9,18 +9,12 @@
 
 int state = STATE_LOBBY;
 
-pthread_mutex_t players_lock;
-int max_players = 8;
-
 void disconnect_client(int fd, int id) {
     close(fd);
-    pthread_mutex_lock(&players_lock);
-    if (id != -1) {
-        taken_slots[id] = 0;
-        player_count--;
-        printf("%s disconnected\n", players[id].name);
+    if (id > -1) {
+        printf("%s disconnected\n", get_player(id)->name);
+        remove_player(id);
     }
-    pthread_mutex_unlock(&players_lock);
     pthread_exit(NULL);
 }
 
@@ -30,6 +24,7 @@ void *client_thread(void *arg) {
     unsigned char buf[24];
     unsigned char response[3];
     char name[24];
+    player *player = NULL;
     int id = -1;
 
     for (;;) {
@@ -61,6 +56,7 @@ void *client_thread(void *arg) {
                 memcpy(name, buf + 1, 23);
                 name[23] = 0;
                 id = add_player(name);
+                player = get_player(id);
                 response[1] = JOIN_RESPONSE_SUCCESS;
                 response[2] = (unsigned char) id;
                 if (write(fd, response, 3) == -1) {
@@ -70,11 +66,11 @@ void *client_thread(void *arg) {
                 printf("%s connected\n", name);
                 break;
             case READY:
-                players[id].ready = (uint8_t) (players[id].ready ? 0 : 1);
+                player->ready = (uint8_t) (player->ready ? 0 : 1);
                 printf("%s ready!\n", name);
                 break;
             case INPUT:
-                memcpy(&players[id].input, buf + 2, 2);
+                memcpy(&player->input, buf + 2, 2);
                 break;
             case DISCONNECT:
                 disconnect_client(fd, id);
@@ -101,12 +97,6 @@ int main(int argc, char **argv) {
     struct sockaddr cl_addr;
     socklen_t cl_addrlen;
     pthread_t cl_thread;
-
-    int mutex_init_retval;
-    if ((mutex_init_retval = pthread_mutex_init(&players_lock, NULL))) {
-        fprintf(stderr, "Failed to init mutex: %s\n", strerror(mutex_init_retval));
-        return -1;
-    }
 
     for (;;) {
         if ((cl_fd = accept(fd, &cl_addr, &cl_addrlen)) == -1) {
