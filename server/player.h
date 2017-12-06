@@ -9,8 +9,8 @@
 
 typedef struct player {
     char name[24];
+    uint8_t id;
     uint8_t ready;
-    uint8_t dead;
     uint16_t input;
     uint16_t x;
     uint16_t y;
@@ -20,17 +20,30 @@ typedef struct player {
     uint8_t speed;
     uint8_t count;
     uint8_t active_pwrups;
+    uint8_t dead;
 } player;
 
-extern int player_count;
+/*
+ * default: 8
+ */
 extern int max_players;
 
-player *get_player(int id);
+/*
+ * returns created player struct on success
+ * returns NULL if no free slots available
+ */
+player *add_player(char *name);
 
-int add_player(char *name);
+/*
+ * returns 0 on success
+ * returns -1 if id is invalid or player does not exist
+ */
+int remove_player(int id);
 
-void remove_player(int id);
+int get_player_count();
 
 void clear_players();
+
+size_t prepare_lobby_status(void **ptr);
 
 #endif //BOMBERMAN_PLAYER_H

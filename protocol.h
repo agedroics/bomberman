@@ -61,6 +61,7 @@
 #define INPUT_DETONATE 0x0020u
 #define INPUT_PICK_UP 0x0040u
 #define INPUT_THROW 0x0080u
+
 #define INPUT_TAUNT 0x0200u
 #define INPUT_DANCE 0x0400u
 #define INPUT_LAUGH 0x0800u
@@ -79,7 +80,7 @@
 /*
  * client << server (TCP)
  *
- * player count
+ * player count (1)
  * for n = 0 to player count:
  *   player id (1)
  *   non null-terminated player name (23)
