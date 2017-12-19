@@ -2,12 +2,19 @@
 #define BOMBERMAN_PLAYER_H
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/socket.h>
 #include "../protocol.h"
 
 typedef struct player {
+    struct player *prev;
+    struct player *next;
+    int fd;
     char name[24];
     uint8_t id;
     uint8_t ready;
@@ -23,27 +30,38 @@ typedef struct player {
     uint8_t dead;
 } player;
 
-/*
- * default: 8
- */
+extern int player_count;
+
+// default: 8
 extern int max_players;
+
+void send_lobby_ready();
 
 /*
  * returns created player struct on success
  * returns NULL if no free slots available
+ *
+ * side effects:
+ * allocated memory
+ * item added to players stack
+ * increased player_count
+ * set socket options
  */
-player *add_player(char *name);
+player *add_player(int fd, char *name);
 
 /*
- * returns 0 on success
- * returns -1 if id is invalid or player does not exist
+ * side effects:
+ * deallocated memory
+ * item removed from players stack
+ * socket closed
+ * decreased player_count
  */
-int remove_player(int id);
+void remove_player(player *player);
 
-int get_player_count();
+void broadcast(void *msg, size_t size);
 
-void clear_players();
+void lock_players();
 
-size_t prepare_lobby_status(void **ptr);
+void unlock_players();
 
 #endif //BOMBERMAN_PLAYER_H

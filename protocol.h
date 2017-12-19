@@ -108,7 +108,7 @@
 /*
  * client << server (TCP)
  *
- * update count (4)
+ * update count (2)
  * for n = 0 to update count:
  *   x position (2)
  *   y position (2)

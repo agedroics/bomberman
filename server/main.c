@@ -2,7 +2,6 @@
 #include "../protocol.h"
 #include "setup.h"
 #include "player.h"
-#include "broadcast.h"
 
 #define STATE_LOBBY 1
 #define STATE_IN_PROGRESS 2
@@ -10,19 +9,23 @@
 
 static int state = STATE_LOBBY;
 
-void send_lobby_ready() {
-    void *msg;
-    size_t size = prepare_lobby_status(&msg);
-    broadcast(msg, size);
-    free(msg);
-}
-
+/*
+ * side effects:
+ * socket closed
+ * send_lobby_ready()
+ * thread exit
+ */
 void disconnect_client(int fd, player *player) {
-    unregister_client(fd);
-    close(fd);
-    if (player) {
+    if (!player) {
+        close(fd);
+    } else {
+        lock_players();
         printf("%s disconnected\n", player->name);
-        remove_player(player->id);
+        remove_player(player);
+        if (state == STATE_LOBBY) {
+            send_lobby_ready();
+        }
+        unlock_players();
     }
     pthread_exit(NULL);
 }
@@ -50,45 +53,63 @@ void *client_thread(void *arg) {
         switch (*buf) {
             case JOIN_REQUEST:
                 if (player) {
-                    break;
+                    continue;
                 }
                 response[0] = JOIN_RESPONSE;
                 if (state == STATE_IN_PROGRESS || state == STATE_GAME_OVER) {
                     response[1] = JOIN_RESPONSE_BUSY;
-                    send(fd, response, 2, MSG_NOSIGNAL);
+                    write(fd, response, 2);
+                    disconnect_client(fd, player);
+                }
+                if (player_count + 1 > max_players) {
+                    response[1] = JOIN_RESPONSE_FULL;
+                    write(fd, response, 2);
                     disconnect_client(fd, player);
                 }
                 memmove(buf, buf + 1, 23);
                 buf[23] = 0;
-                player = add_player(buf);
+
+                lock_players();
+                player = add_player(fd, buf);
+                unlock_players();
+
                 if (!player) {
                     response[1] = JOIN_RESPONSE_FULL;
-                    send(fd, response, 2, MSG_NOSIGNAL);
+                    write(fd, response, 2);
                     disconnect_client(fd, player);
                 }
                 response[1] = JOIN_RESPONSE_SUCCESS;
                 response[2] = player->id;
-                if (send(fd, response, 3, MSG_NOSIGNAL) == -1) {
-                    fprintf(stderr, "Failed to send message to %s: %s\n", buf, strerror(errno));
+                if (write(fd, response, 3) == -1) {
+                    fprintf(stderr, "Failed to send message to %s: %s\n", player->name, strerror(errno));
                     disconnect_client(fd, player);
                 }
-                register_client(fd);
+
+                printf("%s connected\n", player->name);
+                lock_players();
                 send_lobby_ready();
-                printf("%s connected\n", buf);
+                unlock_players();
+
                 break;
             case READY:
                 if (state != STATE_LOBBY) {
                     continue;
                 }
+
                 player->ready = (uint8_t) (player->ready ? 0 : 1);
+                printf("%s%s ready!\n", player->name, player->ready ? " ready" : "");
+                lock_players();
                 send_lobby_ready();
-                printf("%s ready!\n", player->name);
+                unlock_players();
+
                 break;
             case INPUT:
                 if (state != STATE_IN_PROGRESS) {
                     continue;
                 }
+
                 memcpy(&player->input, buf + 2, 2);
+
                 break;
             case DISCONNECT:
                 disconnect_client(fd, player);
