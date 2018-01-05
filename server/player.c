@@ -7,14 +7,16 @@ int player_count = 0;
 int max_players = 8;
 
 void send_lobby_ready() {
-    size_t size = 1 + 24 * (size_t) player_count;
+    size_t size = 3 + 24 * (size_t) player_count;
     uint8_t *msg = calloc(size, 1);
     msg[0] = LOBBY_STATUS;
+    msg[1] = (uint8_t) player_count;
     int i;
     player *it;
     for (i = 0, it = players; i < player_count && it; ++i, it = it->next) {
-        memcpy(msg + 1 + i * 24, it->name, 23);
-        msg[(i + 1) * 24] = it->ready;
+        msg[2 + i * 24] = it->id;
+        memcpy(msg + 3 + i * 24, it->name, 23);
+        msg[size - 1] |= it->ready << i;
     }
     broadcast(msg, size);
     free(msg);
@@ -39,10 +41,6 @@ player *add_player(int fd, char *name) {
     player->speed = 1;
     player->count = 1;
     ++player_count;
-    int val = 1;
-    if (setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &val, sizeof(int)) == -1) {
-        fprintf(stderr, "Failed to set socket options: %s\n", strerror(errno));
-    }
     return player;
 }
 
@@ -69,7 +67,7 @@ void broadcast(void *msg, size_t size) {
     player *it;
     for (i = 0, it = players; i < player_count && it; ++i, it = it->next) {
         // maybe MSG_DONTWAIT
-        send(it->fd, msg, size, NULL);
+        write(it->fd, msg, size);
     }
 }
 

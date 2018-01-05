@@ -26,13 +26,14 @@
  *
  * player count (1)
  * for n = 0 to player count:
+ *   player id (1)
  *   non null-terminated player name (23)
- *   ready? (1)
+ * readiness (one bit for each player) (1)
  */
 #define LOBBY_STATUS 0x07u
 
 /*
- * client >> server (UDP)
+ * client >> server (TCP)
  *
  * player id (1)
  */
@@ -53,7 +54,7 @@
  */
 #define INPUT 0x05u
 
-#define INPUT_UP 0x0000u
+#define INPUT_UP 0x0001u
 #define INPUT_DOWN 0x0002u
 #define INPUT_LEFT 0x0004u
 #define INPUT_RIGHT 0x0008u
@@ -87,12 +88,12 @@
  *   x position / 10 (2)
  *   y position / 10 (2)
  *   DIRECTION_* (1)
- * field width [0;6000] (2)
- * field height [0;6000] (2)
+ * field width [0;255] (1)
+ * field height [0;255] (1)
  * array of BLOCK_* (field width * field height)
  * (optional) dynamite timer in s, default 5 (1)
  * TODO: define default dynamite slide velocity
- * (optional) dynamite slide velocity / 10 in u/s, default . (1)
+ * (optional) dynamite slide velocity / 10 in u/s [0.1;25.5], default . (1)
  */
 #define GAME_START 0x08u
 
@@ -110,28 +111,28 @@
  *
  * update count (2)
  * for n = 0 to update count:
- *   x position (2)
- *   y position (2)
+ *   x position (1)
+ *   y position (1)
  *   BLOCK_* (1)
  */
 #define MAP_UPDATE 0x09u
 
 /*
- * client << server (UDP)
+ * client << server (TCP)
  *
  * timer in s (2)
  * dynamite count (1)
  * for n = 0 to dynamite count:
- *   x position (2)
- *   y position (2)
+ *   x position (1)
+ *   y position (1)
  * flame count (1)
  * for n = 0 to flame count:
- *   x position (2)
- *   y position (2)
+ *   x position (1)
+ *   y position (1)
  * powerup count (1)
  * for n = 0 to powerup count:
- *   x position (2)
- *   y position (2)
+ *   x position (1)
+ *   y position (1)
  *   PWRUP_* (1)
  * player count (1)
  * for n = 0 to player count:
@@ -142,9 +143,9 @@
  *     y position / 10 (2)
  *     DIRECTION_* (1)
  *     OR of ACTIVE_PWRUP_* (1)
- *     power [1;] (1)
- *     speed in u/s [1;] (1)
- *     count [1;] (1)
+ *     power [1;255] (1)
+ *     speed in u/s [1;255] (1)
+ *     count [1;255] (1)
  */
 #define OBJECTS 0x0Au
 
@@ -154,8 +155,8 @@
 #define PWRUP_COUNT 0x03u
 #define PWRUP_KICK 0x04u
 
-#define ACTIVE_PWRUP_REMOTE 0x00u
-#define ACTIVE_PWRUP_KICK 0x01u
+#define ACTIVE_PWRUP_REMOTE 0x01u
+#define ACTIVE_PWRUP_KICK 0x02u
 
 /*
  * client << server (TCP)

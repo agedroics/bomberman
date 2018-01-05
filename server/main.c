@@ -1,11 +1,13 @@
 #include <unistd.h>
+#include <signal.h>
 #include "../protocol.h"
 #include "setup.h"
 #include "player.h"
 
 #define STATE_LOBBY 1
-#define STATE_IN_PROGRESS 2
-#define STATE_GAME_OVER 3
+#define STATE_PREPARING 2
+#define STATE_IN_PROGRESS 3
+#define STATE_GAME_OVER 4
 
 static int state = STATE_LOBBY;
 
@@ -56,7 +58,7 @@ void *client_thread(void *arg) {
                     continue;
                 }
                 response[0] = JOIN_RESPONSE;
-                if (state == STATE_IN_PROGRESS || state == STATE_GAME_OVER) {
+                if (state != STATE_LOBBY) {
                     response[1] = JOIN_RESPONSE_BUSY;
                     write(fd, response, 2);
                     disconnect_client(fd, player);
@@ -92,16 +94,14 @@ void *client_thread(void *arg) {
 
                 break;
             case READY:
-                if (state != STATE_LOBBY) {
-                    continue;
+                // TODO: handle STATE_PREPARING
+                if (state == STATE_LOBBY) {
+                    player->ready = (uint8_t) (player->ready ? 0 : 1);
+                    printf("%s%s ready!\n", player->name, player->ready ? " ready" : "");
+                    lock_players();
+                    send_lobby_ready();
+                    unlock_players();
                 }
-
-                player->ready = (uint8_t) (player->ready ? 0 : 1);
-                printf("%s%s ready!\n", player->name, player->ready ? " ready" : "");
-                lock_players();
-                send_lobby_ready();
-                unlock_players();
-
                 break;
             case INPUT:
                 if (state != STATE_IN_PROGRESS) {
@@ -122,6 +122,8 @@ void *client_thread(void *arg) {
 int main(int argc, char **argv) {
     int fd;
     struct sockaddr_in addr;
+
+    signal(SIGPIPE, SIG_IGN);
 
     if (read_args(argc, argv, &addr) == -1) {
         return -1;
