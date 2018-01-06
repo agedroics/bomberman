@@ -7,16 +7,16 @@ int player_count = 0;
 int max_players = 8;
 
 void send_lobby_ready() {
-    size_t size = 3 + 24 * (size_t) player_count;
+    size_t size = 2 + 25 * (size_t) player_count;
     uint8_t *msg = calloc(size, 1);
     msg[0] = LOBBY_STATUS;
     msg[1] = (uint8_t) player_count;
     int i;
     player *it;
     for (i = 0, it = players; i < player_count && it; ++i, it = it->next) {
-        msg[2 + i * 24] = it->id;
-        memcpy(msg + 3 + i * 24, it->name, 23);
-        msg[size - 1] |= it->ready << i;
+        msg[2 + i * 25] = it->id;
+        memcpy(msg + 3 + i * 25, it->name, 23);
+        msg[(i + 1) * 25 + 1] |= it->ready;
     }
     broadcast(msg, size);
     free(msg);

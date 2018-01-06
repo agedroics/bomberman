@@ -28,7 +28,7 @@
  * for n = 0 to player count:
  *   player id (1)
  *   non null-terminated player name (23)
- * readiness (one bit for each player) (1)
+ *   ready? (1)
  */
 #define LOBBY_STATUS 0x07u
 
