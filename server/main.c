@@ -1,8 +1,9 @@
 #include <unistd.h>
 #include <signal.h>
+#include <time.h>
 #include "../protocol.h"
 #include "setup.h"
-#include "player.h"
+#include "game.h"
 
 #define STATE_LOBBY 1
 #define STATE_PREPARING 2
@@ -14,7 +15,7 @@ static int state = STATE_LOBBY;
 /*
  * side effects:
  * socket closed
- * send_lobby_ready()
+ * send_lobby_status()
  * thread exit
  */
 void disconnect_client(int fd, player *player) {
@@ -25,11 +26,15 @@ void disconnect_client(int fd, player *player) {
         printf("%s disconnected\n", player->name);
         remove_player(player);
         if (state == STATE_LOBBY) {
-            send_lobby_ready();
+            send_lobby_status();
         }
         unlock_players();
     }
     pthread_exit(NULL);
+}
+
+void *loop_thread(void *arg) {
+
 }
 
 void *client_thread(void *arg) {
@@ -89,7 +94,7 @@ void *client_thread(void *arg) {
 
                 printf("%s connected\n", player->name);
                 lock_players();
-                send_lobby_ready();
+                send_lobby_status();
                 unlock_players();
 
                 break;
@@ -99,7 +104,27 @@ void *client_thread(void *arg) {
                     player->ready = (uint8_t) (player->ready ? 0 : 1);
                     printf("%s%s ready!\n", player->name, player->ready ? " ready" : "");
                     lock_players();
-                    send_lobby_ready();
+                    send_lobby_status();
+                    if (all_players_ready()) {
+                        state = STATE_PREPARING;
+                        puts("PREPARATION STAGE");
+                        set_players_not_ready();
+                        send_game_start();
+                    }
+                    unlock_players();
+                } else if (state == STATE_PREPARING) {
+                    player->ready = (uint8_t) (player->ready ? 0 : 1);
+                    printf("%s%s ready!\n", player->name, player->ready ? " ready" : "");
+                    lock_players();
+                    if (all_players_ready()) {
+                        state = STATE_IN_PROGRESS;
+                        puts("STARTING GAME");
+                        set_players_not_ready();
+                        pthread_t thread;
+                        if ((errno = pthread_create(&thread, NULL, loop_thread, NULL))) {
+                            fprintf(stderr, "Failed to create thread: %s\n", strerror(errno));
+                        }
+                    }
                     unlock_players();
                 }
                 break;
@@ -124,6 +149,7 @@ int main(int argc, char **argv) {
     struct sockaddr_in addr;
 
     signal(SIGPIPE, SIG_IGN);
+    srand((unsigned) time(NULL));
 
     if (read_args(argc, argv, &addr) == -1) {
         return -1;
@@ -133,14 +159,22 @@ int main(int argc, char **argv) {
         return -1;
     }
 
+    puts("LOBBY STAGE");
+
     int cl_fd;
-    struct sockaddr cl_addr;
-    socklen_t cl_addrlen;
     pthread_t cl_thread;
+    struct timeval timeout;
+    timeout.tv_sec = 10;
+    timeout.tv_usec = 0;
 
     for (;;) {
-        if ((cl_fd = accept(fd, &cl_addr, &cl_addrlen)) == -1) {
+        if ((cl_fd = accept(fd, NULL, NULL)) == -1) {
             fprintf(stderr, "Failed to accept incoming connection: %s\n", strerror(errno));
+            continue;
+        }
+
+        if (setsockopt(cl_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
+            fprintf(stderr, "Failed to set socket timeout: %s\n", strerror(errno));
             continue;
         }
 

@@ -15,5 +15,5 @@ include_directories(${SFML_INCLUDE_DIR})
 add_executable(client protocol.h client/main.cpp)
 target_link_libraries(client ${SFML_LIBRARIES})
 
-add_executable(server protocol.h server/main.c server/setup.c server/setup.h server/player.c server/player.h)
+add_executable(server protocol.h server/main.c server/setup.c server/setup.h server/game.c server/game.h)
 target_link_libraries(server Threads::Threads)

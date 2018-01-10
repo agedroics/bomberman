@@ -1,8 +1,9 @@
-#ifndef BOMBERMAN_PLAYER_H
-#define BOMBERMAN_PLAYER_H
+#ifndef BOMBERMAN_GAME_H
+#define BOMBERMAN_GAME_H
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include <string.h>
 #include <pthread.h>
 #include <stdint.h>
@@ -30,12 +31,18 @@ typedef struct player {
     uint8_t dead;
 } player;
 
-extern int player_count;
+extern uint8_t player_count;
 
 // default: 8
-extern int max_players;
+extern uint8_t max_players;
 
-void send_lobby_ready();
+void send_lobby_status(void);
+
+int all_players_ready(void);
+
+void set_players_not_ready(void);
+
+void send_game_start(void);
 
 /*
  * returns created player struct on success
@@ -60,8 +67,8 @@ void remove_player(player *player);
 
 void broadcast(void *msg, size_t size);
 
-void lock_players();
+void lock_players(void);
 
-void unlock_players();
+void unlock_players(void);
 
-#endif //BOMBERMAN_PLAYER_H
+#endif //BOMBERMAN_GAME_H
