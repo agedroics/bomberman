@@ -12,8 +12,8 @@ find_package(SFML REQUIRED system window graphics network audio)
 
 include_directories(${SFML_INCLUDE_DIR})
 
-add_executable(client protocol.h client/main.cpp)
+add_executable(client common/protocol.h common/reader.c common/reader.h client/main.cpp common/utils.h)
 target_link_libraries(client ${SFML_LIBRARIES})
 
-add_executable(server protocol.h server/main.c server/setup.c server/setup.h server/game.c server/game.h)
+add_executable(server common/protocol.h common/reader.c common/reader.h server/main.c server/setup.c server/setup.h server/game.c server/game.h common/utils.h)
 target_link_libraries(server Threads::Threads)

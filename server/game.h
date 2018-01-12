@@ -10,7 +10,11 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/socket.h>
-#include "../protocol.h"
+#include "../common/protocol.h"
+#include "../common/utils.h"
+
+#define TICK_RATE 2
+#define TIMER 10
 
 typedef struct player {
     struct player *prev;
@@ -43,6 +47,12 @@ int all_players_ready(void);
 void set_players_not_ready(void);
 
 void send_game_start(void);
+
+void send_game_over(void);
+
+void reset_game(void);
+
+void do_tick(uint16_t timer);
 
 /*
  * returns created player struct on success

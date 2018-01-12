@@ -1,16 +1,63 @@
 #include <unistd.h>
 #include <signal.h>
 #include <time.h>
-#include "../protocol.h"
+#include "../common/protocol.h"
+#include "../common/reader.h"
+#include "../common/utils.h"
 #include "setup.h"
 #include "game.h"
 
 #define STATE_LOBBY 1
 #define STATE_PREPARING 2
 #define STATE_IN_PROGRESS 3
-#define STATE_GAME_OVER 4
 
 static int state = STATE_LOBBY;
+
+static void *loop_thread(void *arg) {
+    signal(SIGPIPE, SIG_IGN);
+
+    time_t epoch = time(NULL);
+    time_t cur_time = epoch;
+    uint16_t timer = TIMER;
+
+    time_t timestamp;
+    while (timer < UINT16_MAX && player_count) {
+        timestamp = time(NULL);
+
+        lock_players();
+        do_tick(timer);
+        unlock_players();
+
+        cur_time += 1000 / TICK_RATE;
+        timer = (uint16_t) (TIMER - (cur_time - epoch) / 1000);
+
+        usleep((__useconds_t) MAX((timestamp + 1000 / TICK_RATE - time(NULL)) * 1000, 0));
+    }
+
+    puts("GAME OVER");
+    lock_players();
+    send_game_over();
+    reset_game();
+    unlock_players();
+    puts("LOBBY STAGE");
+    state = STATE_LOBBY;
+}
+
+static void start_game(void) {
+    puts("STARTING GAME");
+    state = STATE_IN_PROGRESS;
+    pthread_t thread;
+    if ((errno = pthread_create(&thread, NULL, loop_thread, NULL))) {
+        fprintf(stderr, "Failed to create thread: %s\n", strerror(errno));
+    }
+}
+
+static void start_preparation(void) {
+    set_players_not_ready();
+    puts("PREPARATION STAGE");
+    state = STATE_PREPARING;
+    send_game_start();
+}
 
 /*
  * side effects:
@@ -18,7 +65,7 @@ static int state = STATE_LOBBY;
  * send_lobby_status()
  * thread exit
  */
-void disconnect_client(int fd, player *player) {
+static void disconnect_client(int fd, player *player) {
     if (!player) {
         close(fd);
     } else {
@@ -27,39 +74,43 @@ void disconnect_client(int fd, player *player) {
         remove_player(player);
         if (state == STATE_LOBBY) {
             send_lobby_status();
+            if (player_count && all_players_ready()) {
+                start_preparation();
+            }
+        } else if (state == STATE_PREPARING) {
+            if (!player_count) {
+                puts("LOBBY STAGE");
+                state = STATE_LOBBY;
+            } else if (all_players_ready()) {
+                start_game();
+            }
         }
         unlock_players();
     }
     pthread_exit(NULL);
 }
 
-void *loop_thread(void *arg) {
-
-}
-
-void *client_thread(void *arg) {
+static void *client_thread(void *arg) {
     int fd = *(int *) arg;
-    ssize_t bytes_read;
-    char buf[24];
+    reader_t reader;
+    reader_init(&reader, fd);
+    char *data;
     uint8_t response[3];
     player *player = NULL;
 
     for (;;) {
-        bytes_read = read(fd, buf, 24);
-        if (bytes_read == -1) {
-            fprintf(stderr, "Failed to receive message: %s\n", strerror(errno));
+        data = get_bytes(&reader, 1);
+        if (!data) {
             disconnect_client(fd, player);
-        } else if (!bytes_read) {
+        }
+        if (!player && *data != JOIN_REQUEST) {
             disconnect_client(fd, player);
         }
 
-        if (!player && *buf != JOIN_REQUEST) {
-            disconnect_client(fd, player);
-        }
-
-        switch (*buf) {
+        switch (*data) {
             case JOIN_REQUEST:
-                if (player) {
+                data = get_bytes(&reader, 23);
+                if (player || !data) {
                     continue;
                 }
                 response[0] = JOIN_RESPONSE;
@@ -73,11 +124,9 @@ void *client_thread(void *arg) {
                     write(fd, response, 2);
                     disconnect_client(fd, player);
                 }
-                memmove(buf, buf + 1, 23);
-                buf[23] = 0;
 
                 lock_players();
-                player = add_player(fd, buf);
+                player = add_player(fd, data);
                 unlock_players();
 
                 if (!player) {
@@ -96,49 +145,48 @@ void *client_thread(void *arg) {
                 lock_players();
                 send_lobby_status();
                 unlock_players();
-
                 break;
             case READY:
-                // TODO: handle STATE_PREPARING
+                data = get_bytes(&reader, 1);
+                if (!data || *data != player->id) {
+                    continue;
+                }
                 if (state == STATE_LOBBY) {
                     player->ready = (uint8_t) (player->ready ? 0 : 1);
-                    printf("%s%s ready!\n", player->name, player->ready ? " ready" : "");
+                    printf("%s%s ready!\n", player->name, player->ready ? "" : " not");
+
                     lock_players();
                     send_lobby_status();
-                    if (all_players_ready()) {
-                        state = STATE_PREPARING;
-                        puts("PREPARATION STAGE");
-                        set_players_not_ready();
-                        send_game_start();
+                    if (all_players_ready() && state == STATE_LOBBY) {
+                        start_preparation();
                     }
                     unlock_players();
-                } else if (state == STATE_PREPARING) {
-                    player->ready = (uint8_t) (player->ready ? 0 : 1);
-                    printf("%s%s ready!\n", player->name, player->ready ? " ready" : "");
+                } else if (state == STATE_PREPARING && !player->ready) {
+                    player->ready = 1;
+                    printf("%s ready!\n", player->name);
+
                     lock_players();
-                    if (all_players_ready()) {
-                        state = STATE_IN_PROGRESS;
-                        puts("STARTING GAME");
-                        set_players_not_ready();
-                        pthread_t thread;
-                        if ((errno = pthread_create(&thread, NULL, loop_thread, NULL))) {
-                            fprintf(stderr, "Failed to create thread: %s\n", strerror(errno));
-                        }
+                    if (all_players_ready() && state == STATE_PREPARING) {
+                        start_game();
                     }
                     unlock_players();
                 }
                 break;
             case INPUT:
-                if (state != STATE_IN_PROGRESS) {
+                data = get_bytes(&reader, 3);
+                if (state != STATE_IN_PROGRESS || !data || *data != player->id) {
                     continue;
                 }
-
-                memcpy(&player->input, buf + 2, 2);
-
+                memcpy(&player->input, data + 1, 2);
                 break;
             case DISCONNECT:
+                data = get_bytes(&reader, 1);
+                if (!data || *data != player->id) {
+                    continue;
+                }
                 disconnect_client(fd, player);
             default:
+                fprintf(stderr, "Received unknown packet type %d from %s\n", *data, player->name);
                 continue;
         }
     }
@@ -183,6 +231,4 @@ int main(int argc, char **argv) {
             close(cl_fd);
         }
     }
-
-    return 0;
 }
