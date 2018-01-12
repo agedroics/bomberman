@@ -16,4 +16,4 @@ add_executable(client common/protocol.h common/reader.c common/reader.h client/m
 target_link_libraries(client ${SFML_LIBRARIES})
 
 add_executable(server common/protocol.h common/reader.c common/reader.h server/main.c server/setup.c server/setup.h server/game.c server/game.h common/utils.h)
-target_link_libraries(server Threads::Threads)
+target_link_libraries(server Threads::Threads m)
