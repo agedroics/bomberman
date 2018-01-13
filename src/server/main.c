@@ -1,11 +1,9 @@
-#include <unistd.h>
 #include <signal.h>
 #include <time.h>
-#include "../common/protocol.h"
-#include "../common/reader.h"
-#include "../common/utils.h"
-#include "setup.h"
-#include "game.h"
+#include "../common/include/utils.h"
+#include "../common/include/reader.h"
+#include "include/setup.h"
+#include "include/game.h"
 
 #define STATE_LOBBY 1
 #define STATE_PREPARING 2
@@ -25,13 +23,13 @@ static void *loop_thread(void *arg) {
         timestamp = time(NULL);
 
         lock_players();
-        do_tick(timer);
+        do_tick(timer, cur_time);
         unlock_players();
 
         cur_time += 1000 / TICK_RATE;
         timer = (uint16_t) (TIMER - (cur_time - epoch) / 1000);
 
-        usleep((__useconds_t) MAX((timestamp + 1000 / TICK_RATE - time(NULL)) * 1000, 0));
+        usleep((useconds_t) MAX((timestamp + 1000 / TICK_RATE - time(NULL)) * 1000, 0));
     }
 
     puts("GAME OVER");
@@ -41,6 +39,7 @@ static void *loop_thread(void *arg) {
     unlock_players();
     puts("LOBBY STAGE");
     state = STATE_LOBBY;
+    pthread_exit(NULL);
 }
 
 static void start_game(void) {
@@ -56,7 +55,7 @@ static void start_preparation(void) {
     set_players_not_ready();
     puts("PREPARATION STAGE");
     state = STATE_PREPARING;
-    send_game_start();
+    setup_game();
 }
 
 /*
@@ -116,12 +115,16 @@ static void *client_thread(void *arg) {
                 response[0] = JOIN_RESPONSE;
                 if (state != STATE_LOBBY) {
                     response[1] = JOIN_RESPONSE_BUSY;
-                    write(fd, response, 2);
+                    if (write(fd, response, 2) == -1) {
+                        fprintf(stderr, "Failed to send join response: %s\n", strerror(errno));
+                    }
                     disconnect_client(fd, player);
                 }
-                if (player_count + 1 > max_players) {
+                if (player_count + 1 > MAX_PLAYERS) {
                     response[1] = JOIN_RESPONSE_FULL;
-                    write(fd, response, 2);
+                    if (write(fd, response, 2) == -1) {
+                        fprintf(stderr, "Failed to send join response: %s\n", strerror(errno));
+                    }
                     disconnect_client(fd, player);
                 }
 
@@ -131,7 +134,9 @@ static void *client_thread(void *arg) {
 
                 if (!player) {
                     response[1] = JOIN_RESPONSE_FULL;
-                    write(fd, response, 2);
+                    if (write(fd, response, 2) == -1) {
+                        fprintf(stderr, "Failed to send join response: %s\n", strerror(errno));
+                    }
                     disconnect_client(fd, player);
                 }
                 response[1] = JOIN_RESPONSE_SUCCESS;
@@ -174,10 +179,21 @@ static void *client_thread(void *arg) {
                 break;
             case INPUT:
                 data = get_bytes(&reader, 3);
-                if (state != STATE_IN_PROGRESS || !data || *data != player->id) {
+                if (state != STATE_IN_PROGRESS || !data || *data != player->id || player->dead) {
                     continue;
                 }
-                memcpy(&player->input, data + 1, 2);
+                uint16_t input;
+                memcpy(&input, data + 1, 2);
+                if (input & INPUT_PLANT && !(player->input & INPUT_PLANT)) {
+                    player->plant_pressed = 1;
+                }
+                if (input & INPUT_DETONATE && !(player->input & INPUT_DETONATE) && player->active_pwrups & ACTIVE_PWRUP_REMOTE) {
+                    player->detonate_pressed = 1;
+                }
+                if (input & INPUT_PICK_UP && !(player->input & INPUT_PICK_UP)) {
+                    player->pick_up_pressed = 1;
+                }
+                player->input = input;
                 break;
             case DISCONNECT:
                 data = get_bytes(&reader, 1);
@@ -185,11 +201,14 @@ static void *client_thread(void *arg) {
                     continue;
                 }
                 disconnect_client(fd, player);
+            case KEEP_ALIVE:
+                break;
             default:
                 fprintf(stderr, "Received unknown packet type %d from %s\n", *data, player->name);
-                continue;
         }
     }
+
+    pthread_exit(NULL);
 }
 
 int main(int argc, char **argv) {

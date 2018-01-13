@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.5)
 project(bomberman C CXX)
 
 set(CMAKE_C_STANDARD 90)
@@ -12,8 +12,15 @@ find_package(SFML REQUIRED system window graphics network audio)
 
 include_directories(${SFML_INCLUDE_DIR})
 
-add_executable(client common/protocol.h common/reader.c common/reader.h client/main.cpp common/utils.h)
+set(COMMON_FOLDER src/common)
+set(COMMON ${COMMON_FOLDER}/include/protocol.h ${COMMON_FOLDER}/reader.c ${COMMON_FOLDER}/include/reader.h ${COMMON_FOLDER}/include/utils.h)
+
+set(CLIENT_FOLDER src/client)
+add_executable(client ${COMMON} ${CLIENT_FOLDER}/main.cpp)
 target_link_libraries(client ${SFML_LIBRARIES})
 
-add_executable(server common/protocol.h common/reader.c common/reader.h server/main.c server/setup.c server/setup.h server/game.c server/game.h common/utils.h)
+set(SERVER_FOLDER src/server)
+set(SERVER_INCLUDE ${SERVER_FOLDER}/include/game.h ${SERVER_FOLDER}/include/object.h ${SERVER_FOLDER}/include/packet.h ${SERVER_FOLDER}/include/player.h ${SERVER_FOLDER}/include/setup.h)
+set(SERVER_SRC ${SERVER_FOLDER}/main.c ${SERVER_FOLDER}/game.c ${SERVER_FOLDER}/object.c ${SERVER_FOLDER}/packet.c ${SERVER_FOLDER}/player.c ${SERVER_FOLDER}/setup.c)
+add_executable(server ${COMMON} ${SERVER_INCLUDE} ${SERVER_SRC})
 target_link_libraries(server Threads::Threads m)

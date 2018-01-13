@@ -122,8 +122,8 @@
  * timer in s (2)
  * dynamite count (1)
  * for n = 0 to dynamite count:
- *   x position (1)
- *   y position (1)
+ *   x position / 10 (2)
+ *   y position / 10 (2)
  * flame count (1)
  * for n = 0 to flame count:
  *   x position (1)

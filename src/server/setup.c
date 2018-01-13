@@ -1,27 +1,17 @@
-#include "setup.h"
+#include "include/setup.h"
 
 int read_args(int argc, char **argv, struct sockaddr_in *addr) {
-    int i;
-    int ip_set = 0;
-    int port_set = 0;
     memset(addr, 0, sizeof(struct sockaddr_in));
     addr->sin_family = AF_INET;
-    for (i = 1; i < argc; ++i) {
-        if (!strcmp(argv[i], "-ip")) {
-            if (!inet_pton(AF_INET, argv[++i], &addr->sin_addr)) {
-                fprintf(stderr, "Invalid IP address: %s\n", argv[i]);
-                return -1;
-            }
-            ip_set = 1;
-        } else if (!strcmp(argv[i], "-p")) {
-            addr->sin_port = htons((uint16_t) strtol(argv[++i], NULL, 10));
-            port_set = 1;
-        }
-    }
-    if (!ip_set || !port_set) {
-        fprintf(stderr, "Usage: %s -ip addr -p port\n", argv[0]);
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s <address> <port>\n", argv[0]);
         return -1;
     }
+    if (!inet_pton(AF_INET, argv[1], &addr->sin_addr)) {
+        fprintf(stderr, "Invalid IP address: %s\n", argv[1]);
+        return -1;
+    }
+    addr->sin_port = htons((uint16_t) strtol(argv[2], NULL, 10));
     return 0;
 }
 
