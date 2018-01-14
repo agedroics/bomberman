@@ -11,6 +11,9 @@ void setup_game(void);
 
 void reset_game(void);
 
-void do_tick(uint16_t timer, time_t cur_time);
+/**
+ * @return game over
+ */
+int do_tick(uint16_t timer, time_t cur_time);
 
 #endif //BOMBERMAN_GAME_H

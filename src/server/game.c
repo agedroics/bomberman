@@ -152,7 +152,7 @@ static void spawn_flames(time_t cur_time, player *owner, uint8_t power, uint8_t 
     }
 }
 
-void do_tick(uint16_t timer, time_t cur_time) {
+int do_tick(uint16_t timer, time_t cur_time) {
     dyn_t *dyn;
     for (dyn = dynamites; dyn; dyn = dyn->next) {
         if ((cur_time - dyn->created) / 1000 >= DYNAMITE_TIMER || (dyn->remote_detonated && dyn->owner->detonate_pressed)) {
@@ -247,11 +247,13 @@ void do_tick(uint16_t timer, time_t cur_time) {
         }
     }
 
+    int alive_players = 0;
     player *it;
     for (it = players; it; it = it->next) {
         if (it->dead) {
             continue;
         }
+        ++alive_players;
 
         if (it->plant_pressed && it->count && !it->carrying_dyn) {
             dyn_create(cur_time, it);
@@ -326,6 +328,10 @@ void do_tick(uint16_t timer, time_t cur_time) {
         }
     }
 
+    if (alive_players < 2) {
+        return 1;
+    }
+
     pwrup_t *pwrup;
     for (pwrup = pwrups; pwrup; pwrup = pwrup->next) {
         if ((cur_time - pwrup->created) / 1000 >= PWRUP_TIMEOUT) {
@@ -379,6 +385,8 @@ void do_tick(uint16_t timer, time_t cur_time) {
     if (map_upd_cnt) {
         send_map_update();
     }
+
+    return 0;
 }
 
 void reset_game(void) {

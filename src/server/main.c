@@ -16,19 +16,17 @@ static void *loop_thread(void *arg) {
 
     time_t epoch = time(NULL);
     time_t cur_time = epoch;
-    uint16_t timer = TIMER;
+    int game_over = 0;
 
-    time_t timestamp;
-    while (timer < UINT16_MAX && player_count) {
-        timestamp = time(NULL);
+    while (!game_over && player_count > 1) {
+        time_t timestamp = time(NULL);
+        uint16_t timer = (uint16_t) MAX(TIMER - (cur_time - epoch) / 1000, 0);
 
         lock_players();
-        do_tick(timer, cur_time);
+        game_over = do_tick(timer, cur_time);
         unlock_players();
 
         cur_time += 1000 / TICK_RATE;
-        timer = (uint16_t) (TIMER - (cur_time - epoch) / 1000);
-
         usleep((useconds_t) MAX((timestamp + 1000 / TICK_RATE - time(NULL)) * 1000, 0));
     }
 
@@ -73,11 +71,11 @@ static void disconnect_client(int fd, player *player) {
         remove_player(player);
         if (state == STATE_LOBBY) {
             send_lobby_status();
-            if (player_count && all_players_ready()) {
+            if (player_count > 1 && all_players_ready()) {
                 start_preparation();
             }
         } else if (state == STATE_PREPARING) {
-            if (!player_count) {
+            if (player_count < 2) {
                 puts("LOBBY STAGE");
                 state = STATE_LOBBY;
             } else if (all_players_ready()) {
@@ -162,7 +160,7 @@ static void *client_thread(void *arg) {
 
                     lock_players();
                     send_lobby_status();
-                    if (all_players_ready() && state == STATE_LOBBY) {
+                    if (player_count > 1 && all_players_ready() && state == STATE_LOBBY) {
                         start_preparation();
                     }
                     unlock_players();
@@ -171,7 +169,7 @@ static void *client_thread(void *arg) {
                     printf("%s ready!\n", player->name);
 
                     lock_players();
-                    if (all_players_ready() && state == STATE_PREPARING) {
+                    if (player_count > 1 && all_players_ready() && state == STATE_PREPARING) {
                         start_game();
                     }
                     unlock_players();
