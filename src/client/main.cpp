@@ -85,69 +85,36 @@ int main(int argc, char **argv) {
     window.setVerticalSyncEnabled(true);
     sf::Event event;
 
-    uint16_t input = 0;
     uint16_t prev_input = 0;
 
     while (window.isOpen()) {
         time_t timestamp = time(nullptr);
+        uint16_t input = 0;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+            input |= INPUT_LEFT;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+            input |= INPUT_UP;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+            input |= INPUT_RIGHT;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+            input |= INPUT_DOWN;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
+            input |= INPUT_PLANT;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::F)) {
+            input |= INPUT_DETONATE;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
+            input |= INPUT_PICK_UP;
+        }
         while (window.pollEvent(event)) {
             switch (event.type) {
                 case sf::Event::Closed:
                     window.close();
-                    break;
-                case sf::Event::KeyPressed:
-                    switch (event.key.code) {
-                        case sf::Keyboard::A:
-                            input |= INPUT_LEFT;
-                            break;
-                        case sf::Keyboard::W:
-                            input |= INPUT_UP;
-                            break;
-                        case sf::Keyboard::D:
-                            input |= INPUT_RIGHT;
-                            break;
-                        case sf::Keyboard::S:
-                            input |= INPUT_DOWN;
-                            break;
-                        case sf::Keyboard::Space:
-                            input |= INPUT_PLANT;
-                            break;
-                        case sf::Keyboard::F:
-                            input |= INPUT_DETONATE;
-                            break;
-                        case sf::Keyboard::E:
-                            input |= INPUT_PICK_UP;
-                            break;
-                        default:
-                            break;
-                    }
-                    break;
-                case sf::Event::KeyReleased:
-                    switch (event.key.code) {
-                        case sf::Keyboard::A:
-                            input &= ~INPUT_LEFT;
-                            break;
-                        case sf::Keyboard::W:
-                            input &= ~INPUT_UP;
-                            break;
-                        case sf::Keyboard::D:
-                            input &= ~INPUT_RIGHT;
-                            break;
-                        case sf::Keyboard::S:
-                            input &= ~INPUT_DOWN;
-                            break;
-                        case sf::Keyboard::Space:
-                            input &= ~INPUT_PLANT;
-                            break;
-                        case sf::Keyboard::F:
-                            input &= ~INPUT_DETONATE;
-                            break;
-                        case sf::Keyboard::E:
-                            input &= ~INPUT_PICK_UP;
-                            break;
-                        default:
-                            break;
-                    }
                     break;
                 default:
                     break;
