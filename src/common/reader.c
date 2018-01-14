@@ -15,7 +15,7 @@ char *get_bytes(reader_t *reader, size_t n) {
         memmove(reader->buf, reader->buf + reader->pos, available);
         reader->pos = 0;
         ssize_t read_result = read(reader->fd, reader->buf + available, 4096 - available);
-        if (available + read_result < n) {
+        if (read_result < 1 || available + read_result < n) {
             if (read_result == -1) {
                 fprintf(stderr, "Failed to receive message: %s\n", strerror(errno));
             }
