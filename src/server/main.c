@@ -18,7 +18,7 @@ static void *loop_thread(void *arg) {
     time_t cur_time = epoch;
     int game_over = 0;
 
-    while (!game_over && player_count > 1) {
+    while (!game_over) {
         time_t timestamp = time(NULL);
         uint16_t timer = (uint16_t) MAX(TIMER - (cur_time - epoch) / 1000, 0);
 
@@ -113,14 +113,14 @@ static void *client_thread(void *arg) {
                 response[0] = JOIN_RESPONSE;
                 if (state != STATE_LOBBY) {
                     response[1] = JOIN_RESPONSE_BUSY;
-                    if (write(fd, response, 2) == -1) {
+                    if (!send_msg(fd, response, 2)) {
                         fprintf(stderr, "Failed to send join response: %s\n", strerror(errno));
                     }
                     disconnect_client(fd, player);
                 }
                 if (player_count + 1 > MAX_PLAYERS) {
                     response[1] = JOIN_RESPONSE_FULL;
-                    if (write(fd, response, 2) == -1) {
+                    if (!send_msg(fd, response, 2)) {
                         fprintf(stderr, "Failed to send join response: %s\n", strerror(errno));
                     }
                     disconnect_client(fd, player);
@@ -132,14 +132,14 @@ static void *client_thread(void *arg) {
 
                 if (!player) {
                     response[1] = JOIN_RESPONSE_FULL;
-                    if (write(fd, response, 2) == -1) {
+                    if (!send_msg(fd, response, 2)) {
                         fprintf(stderr, "Failed to send join response: %s\n", strerror(errno));
                     }
                     disconnect_client(fd, player);
                 }
                 response[1] = JOIN_RESPONSE_SUCCESS;
                 response[2] = player->id;
-                if (write(fd, response, 3) == -1) {
+                if (!send_msg(fd, response, 3)) {
                     fprintf(stderr, "Failed to send message to %s: %s\n", player->name, strerror(errno));
                     disconnect_client(fd, player);
                 }

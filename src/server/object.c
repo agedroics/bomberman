@@ -12,7 +12,6 @@ void dyn_create(time_t cur_time, player *owner) {
     dyn->y = (int) owner->y + .5;
     dyn->power = owner->power;
     dyn->remote_detonated = owner->active_pwrups & ACTIVE_PWRUP_REMOTE;
-    dyn->owner_can_kick = 0;
     dyn->kicked_by = NULL;
     dyn->prev = NULL;
     dyn->next = dynamites;

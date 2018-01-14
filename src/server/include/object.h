@@ -18,7 +18,6 @@ typedef struct dyn {
     double y;
     uint8_t power;
     int remote_detonated;
-    int owner_can_kick;
     player *kicked_by;
     uint8_t slide_direction;
     struct dyn *prev;

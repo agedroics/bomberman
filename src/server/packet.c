@@ -1,9 +1,21 @@
 #include "packet.h"
 
+int send_msg(int fd, void *msg, size_t size) {
+    size_t bytes_sent = 0;
+    while (bytes_sent < size) {
+        ssize_t send_result = send(fd, msg + bytes_sent, size - bytes_sent, MSG_DONTWAIT);
+        if (send_result == -1) {
+            return 0;
+        }
+        bytes_sent += send_result;
+    }
+    return 1;
+}
+
 static void broadcast(void *msg, size_t size) {
     player *it;
     for (it = players; it; it = it->next) {
-        send(it->fd, msg, size, MSG_DONTWAIT);
+        send_msg(it->fd, msg, size);
     }
 }
 

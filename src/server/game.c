@@ -80,6 +80,7 @@ static void init_field(void) {
         it->y = y + .5;
 
         // clear cross-shaped area around player
+        field_set(x, y, BLOCK_EMPTY);
         if (x > 1) {
             field_set(x - 1, y, BLOCK_EMPTY);
         }
@@ -164,10 +165,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
         map_upd_create(fill_x, fill_y, BLOCK_WALL);
         player *it;
         for (it = players; it; it = it->next) {
-            if (it->dead) {
-                continue;
-            }
-            if (player_intersects(it, fill_x, fill_y)) {
+            if (!it->dead && player_intersects(it, fill_x, fill_y)) {
                 it->dead = 1;
                 printf("%s was killed by the map\n", it->name);
             }
@@ -213,7 +211,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
     dyn_t *dyn;
     for (dyn = dynamites; dyn; dyn = dyn->next) {
         if ((cur_time - dyn->created) / 1000 >= DYNAMITE_TIMER || (dyn->remote_detonated && dyn->owner->detonate_pressed)) {
-            if (dyn->owner->max_count > dyn->owner->count && !(dyn->owner->active_pwrups & ACTIVE_PWRUP_REMOTE)) {
+            if (!(dyn->owner->active_pwrups & ACTIVE_PWRUP_REMOTE) || dyn->remote_detonated) {
                 ++dyn->owner->count;
             }
             uint8_t x = (uint8_t) dyn->x;
@@ -273,19 +271,19 @@ int do_tick(uint16_t timer, time_t cur_time) {
             }
             player *it;
             for (it = players; it; it = it->next) {
-                if (it->dead) {
-                    continue;
-                }
-                if (player_intersects(it, dyn->x, dyn->y)) {
-                    if (it->active_pwrups & ACTIVE_PWRUP_KICK && (it != dyn->owner || dyn->owner_can_kick) && dyn->kicked_by != it) {
-                        dyn->kicked_by = it;
+                if (!it->dead && player_intersects(it, dyn->x, dyn->y)) {
+                    if (it->active_pwrups & ACTIVE_PWRUP_KICK && dyn->kicked_by != it) {
                         if (it->input & INPUT_LEFT) {
+                            dyn->kicked_by = it;
                             dyn->slide_direction = DIRECTION_LEFT;
                         } else if (it->input & INPUT_UP) {
+                            dyn->kicked_by = it;
                             dyn->slide_direction = DIRECTION_UP;
                         } else if (it->input & INPUT_RIGHT) {
+                            dyn->kicked_by = it;
                             dyn->slide_direction = DIRECTION_RIGHT;
                         } else if (it->input & INPUT_DOWN) {
+                            dyn->kicked_by = it;
                             dyn->slide_direction = DIRECTION_DOWN;
                         }
                     } else if (it->pick_up_pressed && !it->carrying_dyn) {
@@ -293,10 +291,9 @@ int do_tick(uint16_t timer, time_t cur_time) {
                         dyn->carrier = it;
                         it->carrying_dyn = 1;
                     }
+                } else if (it == dyn->kicked_by) {
+                    dyn->kicked_by = NULL;
                 }
-            }
-            if (!dyn->owner_can_kick && !player_intersects(dyn->owner, dyn->x, dyn->y)) {
-                dyn->owner_can_kick = 1;
             }
         }
         if (!dyn) {
@@ -367,16 +364,17 @@ int do_tick(uint16_t timer, time_t cur_time) {
         it->pick_up_pressed = 0;
     }
 
+    if (alive_players < 2) {
+        return 1;
+    }
+
     flame_t *flame;
     for (flame = flames; flame; flame = flame->next) {
         if ((cur_time - flame->created) / 1000 >= FLAME_TIMEOUT) {
             flame = flame_destroy(flame);
         } else {
             for (it = players; it; it = it->next) {
-                if (it->dead) {
-                    continue;
-                }
-                if (player_intersects(it, flame->x, flame->y)) {
+                if (!it->dead && player_intersects(it, flame->x, flame->y)) {
                     it->dead = 1;
                     ++flame->owner->frags;
                     printf("%s was killed by %s\n", it->name, flame->owner->name);
@@ -386,10 +384,6 @@ int do_tick(uint16_t timer, time_t cur_time) {
         if (!flame) {
             break;
         }
-    }
-
-    if (alive_players < 2) {
-        return 1;
     }
 
     pwrup_t *pwrup;
