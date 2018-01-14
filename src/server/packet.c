@@ -1,4 +1,4 @@
-#include "include/packet.h"
+#include "packet.h"
 
 static void broadcast(void *msg, size_t size) {
     player *it;

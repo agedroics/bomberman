@@ -1,4 +1,4 @@
-#include "include/player.h"
+#include "player.h"
 
 static pthread_mutex_t players_lock = PTHREAD_MUTEX_INITIALIZER;
 static uint8_t max_id = 0;

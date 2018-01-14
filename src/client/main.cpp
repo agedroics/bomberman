@@ -2,9 +2,9 @@
 #include <arpa/inet.h>
 
 extern "C" {
-    #include "../common/include/reader.h"
-    #include "../common/include/utils.h"
-    #include "include/packet.h"
+    #include "reader.h"
+    #include "utils.h"
+    #include "packet.h"
 }
 
 #define POLL_RATE 60

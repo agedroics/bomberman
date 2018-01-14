@@ -5,7 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdint.h>
-#include "../../common/include/protocol.h"
+#include "protocol.h"
 
 int send_join_request(int fd, char *nickname);
 

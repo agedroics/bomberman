@@ -3,7 +3,7 @@
 
 #include <math.h>
 #include "player.h"
-#include "../../common/include/protocol.h"
+#include "protocol.h"
 
 #define DYNAMITE_TIMER 3
 #define DYNAMITE_SLIDE_V 6

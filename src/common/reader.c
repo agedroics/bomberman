@@ -1,4 +1,4 @@
-#include "include/reader.h"
+#include "reader.h"
 
 void reader_init(reader_t *reader, int fd) {
     reader->fd = fd;
@@ -7,6 +7,9 @@ void reader_init(reader_t *reader, int fd) {
 }
 
 char *get_bytes(reader_t *reader, size_t n) {
+    if (n > 4096) {
+        return NULL;
+    }
     size_t available = reader->size - reader->pos;
     if (available < n) {
         memmove(reader->buf, reader->buf + reader->pos, available);

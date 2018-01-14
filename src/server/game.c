@@ -1,4 +1,4 @@
-#include "include/game.h"
+#include "game.h"
 
 static uint8_t *field;
 static uint8_t w = 15;
@@ -197,7 +197,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
                 }
                 break;
             case DIRECTION_DOWN:
-                if (fill_y + 1 < h - (w - fill_x - 1)) {
+                if (fill_y < h - (w - fill_x)) {
                     ++fill_y;
                 } else {
                     --fill_x;

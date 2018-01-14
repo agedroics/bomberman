@@ -1,4 +1,4 @@
-#include "include/setup.h"
+#include "setup.h"
 
 int read_args(int argc, char **argv, struct sockaddr_in *addr) {
     memset(addr, 0, sizeof(struct sockaddr_in));

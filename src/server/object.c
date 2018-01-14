@@ -1,4 +1,4 @@
-#include "include/object.h"
+#include "object.h"
 
 dyn_t *dynamites;
 uint8_t dyn_cnt;

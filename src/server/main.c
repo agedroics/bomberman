@@ -1,9 +1,9 @@
 #include <signal.h>
 #include <time.h>
-#include "../common/include/utils.h"
-#include "../common/include/reader.h"
-#include "include/setup.h"
-#include "include/game.h"
+#include "utils.h"
+#include "reader.h"
+#include "setup.h"
+#include "game.h"
 
 #define STATE_LOBBY 1
 #define STATE_PREPARING 2

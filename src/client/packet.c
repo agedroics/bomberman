@@ -1,4 +1,4 @@
-#include "include/packet.h"
+#include "packet.h"
 
 int send_join_request(int fd, char *nickname) {
     char msg[24];
