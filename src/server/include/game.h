@@ -4,7 +4,7 @@
 #include "object.h"
 #include "packet.h"
 
-#define TICK_RATE 2
+#define TICK_RATE 30
 #define TIMER 120
 
 void setup_game(void);

@@ -202,6 +202,7 @@ static void *client_thread(void *arg) {
                 }
                 disconnect_client(fd, player);
             case KEEP_ALIVE:
+                get_bytes(&reader, 1);
                 break;
             default:
                 fprintf(stderr, "Received unknown packet type %d from %s\n", *data, player->name);

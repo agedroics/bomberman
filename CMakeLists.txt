@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.1)
 project(bomberman C CXX)
 
 set(CMAKE_C_STANDARD 90)
@@ -16,8 +16,10 @@ set(COMMON_FOLDER src/common)
 set(COMMON ${COMMON_FOLDER}/include/protocol.h ${COMMON_FOLDER}/reader.c ${COMMON_FOLDER}/include/reader.h ${COMMON_FOLDER}/include/utils.h)
 
 set(CLIENT_FOLDER src/client)
-add_executable(client ${COMMON} ${CLIENT_FOLDER}/main.cpp)
-target_link_libraries(client ${SFML_LIBRARIES})
+set(CLIENT_INCLUDE ${CLIENT_FOLDER}/include/packet.h)
+set(CLIENT_SRC ${CLIENT_FOLDER}/main.cpp ${CLIENT_FOLDER}/packet.c)
+add_executable(client ${COMMON} ${CLIENT_INCLUDE} ${CLIENT_SRC})
+target_link_libraries(client Threads::Threads ${SFML_LIBRARIES})
 
 set(SERVER_FOLDER src/server)
 set(SERVER_INCLUDE ${SERVER_FOLDER}/include/game.h ${SERVER_FOLDER}/include/object.h ${SERVER_FOLDER}/include/packet.h ${SERVER_FOLDER}/include/player.h ${SERVER_FOLDER}/include/setup.h)

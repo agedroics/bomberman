@@ -242,6 +242,9 @@ void do_tick(uint16_t timer, time_t cur_time) {
                 dyn->owner_can_kick = 1;
             }
         }
+        if (!dyn) {
+            break;
+        }
     }
 
     player *it;
@@ -318,6 +321,9 @@ void do_tick(uint16_t timer, time_t cur_time) {
                 }
             }
         }
+        if (!flame) {
+            break;
+        }
     }
 
     pwrup_t *pwrup;
@@ -364,10 +370,15 @@ void do_tick(uint16_t timer, time_t cur_time) {
                 }
             }
         }
+        if (!pwrup) {
+            break;
+        }
     }
 
     send_objects(timer);
-    send_map_update();
+    if (map_upd_cnt) {
+        send_map_update();
+    }
 }
 
 void reset_game(void) {
