@@ -152,7 +152,63 @@ static void spawn_flames(time_t cur_time, player *owner, uint8_t power, uint8_t 
     }
 }
 
+static time_t last_fill;
+static uint8_t fill_x = 1;
+static uint8_t fill_y = 1;
+static uint8_t fill_direction = DIRECTION_RIGHT;
+
 int do_tick(uint16_t timer, time_t cur_time) {
+    if (!timer && (!last_fill || cur_time - last_fill >= 1000 / FILL_SPEED)) {
+        last_fill = cur_time;
+        field_set(fill_x, fill_y, BLOCK_WALL);
+        map_upd_create(fill_x, fill_y, BLOCK_WALL);
+        player *it;
+        for (it = players; it; it = it->next) {
+            if (it->dead) {
+                continue;
+            }
+            if (player_intersects(it, fill_x, fill_y)) {
+                it->dead = 1;
+            }
+        }
+        switch (fill_direction) {
+            case DIRECTION_LEFT:
+                if (fill_x > h - fill_y - 1) {
+                    --fill_x;
+                } else {
+                    --fill_y;
+                    fill_direction = DIRECTION_UP;
+                }
+                break;
+            case DIRECTION_UP:
+                if (fill_y - 1 > fill_x) {
+                    --fill_y;
+                } else {
+                    ++fill_x;
+                    fill_direction = DIRECTION_RIGHT;
+                }
+                break;
+            case DIRECTION_RIGHT:
+                if (fill_x + 1 < w - fill_y) {
+                    ++fill_x;
+                } else {
+                    ++fill_y;
+                    fill_direction = DIRECTION_DOWN;
+                }
+                break;
+            case DIRECTION_DOWN:
+                if (fill_y + 1 < h - (w - fill_x - 1)) {
+                    ++fill_y;
+                } else {
+                    --fill_x;
+                    fill_direction = DIRECTION_LEFT;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
     dyn_t *dyn;
     for (dyn = dynamites; dyn; dyn = dyn->next) {
         if ((cur_time - dyn->created) / 1000 >= DYNAMITE_TIMER || (dyn->remote_detonated && dyn->owner->detonate_pressed)) {
@@ -394,6 +450,11 @@ void reset_game(void) {
         free(field);
         field = NULL;
     }
+
+    last_fill = 0;
+    fill_x = 1;
+    fill_y = 1;
+    fill_direction = DIRECTION_RIGHT;
 
     cleanup_objects();
 

@@ -6,6 +6,7 @@
 
 #define TICK_RATE 30
 #define TIMER 120
+#define FILL_SPEED 4
 
 void setup_game(void);
 
