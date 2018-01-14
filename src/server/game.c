@@ -215,8 +215,8 @@ int do_tick(uint16_t timer, time_t cur_time) {
             if (dyn->owner->max_count > dyn->owner->count && !(dyn->owner->active_pwrups & ACTIVE_PWRUP_REMOTE)) {
                 ++dyn->owner->count;
             }
-            uint8_t x = (uint8_t) round(dyn->x);
-            uint8_t y = (uint8_t) round(dyn->y);
+            uint8_t x = (uint8_t) round(dyn->x - .5);
+            uint8_t y = (uint8_t) round(dyn->y - .5);
             flame_create(cur_time, dyn->owner, x, y);
             spawn_flames(cur_time, dyn->owner, dyn->power, x - (uint8_t) 1, y, DIRECTION_LEFT);
             spawn_flames(cur_time, dyn->owner, dyn->power, x, y - (uint8_t) 1, DIRECTION_UP);
@@ -225,13 +225,13 @@ int do_tick(uint16_t timer, time_t cur_time) {
             dyn = dyn_destroy(dyn);
         } else if (dyn->carrier) {
             if (dyn->carrier->plant_pressed || dyn->carrier->dead) {
-                dyn->x = round(dyn->carrier->x);
-                dyn->y = round(dyn->carrier->y);
+                dyn->x = (int) dyn->carrier->x + .5;
+                dyn->y = (int) dyn->carrier->y + .5;
                 dyn->carrier->carrying_dyn = 0;
                 dyn->carrier = NULL;
             } else {
-                dyn->x = dyn->carrier->x - .5;
-                dyn->y = dyn->carrier->y - .5;
+                dyn->x = dyn->carrier->x;
+                dyn->y = dyn->carrier->y;
             }
         } else if (dyn->remote_detonated && dyn->owner->dead) {
             if (dyn->carrier) {
@@ -243,29 +243,29 @@ int do_tick(uint16_t timer, time_t cur_time) {
                 if (dyn->slide_direction == DIRECTION_LEFT) {
                     int x = (int) dyn->x;
                     dyn->x -= (double) DYNAMITE_SLIDE_V / TICK_RATE;
-                    if (field_get(x - 1, (int) dyn->y) != BLOCK_EMPTY && dyn->x < x) {
-                        dyn->x = x;
+                    if (field_get(x - 1, (int) dyn->y) != BLOCK_EMPTY && dyn->x - .5 <= x) {
+                        dyn->x = x + .5;
                         dyn->kicked_by = NULL;
                     }
                 } else if (dyn->slide_direction == DIRECTION_UP) {
                     int y = (int) dyn->y;
                     dyn->y -= (double) DYNAMITE_SLIDE_V / TICK_RATE;
-                    if (field_get((int) dyn->x, y - 1) != BLOCK_EMPTY && dyn->y < y) {
-                        dyn->y = y;
+                    if (field_get((int) dyn->x, y - 1) != BLOCK_EMPTY && dyn->y - .5 <= y) {
+                        dyn->y = y + .5;
                         dyn->kicked_by = NULL;
                     }
                 } else if (dyn->slide_direction == DIRECTION_RIGHT) {
                     int x = (int) dyn->x + 1;
                     dyn->x += (double) DYNAMITE_SLIDE_V / TICK_RATE;
-                    if (field_get(x + 1, (int) dyn->y) != BLOCK_EMPTY && dyn->x > x) {
-                        dyn->x = x;
+                    if (field_get(x, (int) dyn->y) != BLOCK_EMPTY && dyn->x + .5 >= x) {
+                        dyn->x = x - .5;
                         dyn->kicked_by = NULL;
                     }
                 } else if (dyn->slide_direction == DIRECTION_DOWN) {
                     int y = (int) dyn->y + 1;
                     dyn->y += (double) DYNAMITE_SLIDE_V / TICK_RATE;
-                    if (field_get((int) dyn->x, y + 1) != BLOCK_EMPTY && dyn->y > y) {
-                        dyn->y = y;
+                    if (field_get((int) dyn->x, y) != BLOCK_EMPTY && dyn->y + .5 >= y) {
+                        dyn->y = y - .5;
                         dyn->kicked_by = NULL;
                     }
                 }
@@ -326,7 +326,8 @@ int do_tick(uint16_t timer, time_t cur_time) {
                 || (field_get(x - 1, y + 1) != BLOCK_EMPTY && player_intersects(it, x - 1, y + 1))) {
                 it->x = x + (double) PLAYER_SIZE / 2;
             }
-        } else if (it->input & INPUT_UP) {
+        }
+        if (it->input & INPUT_UP) {
             it->direction = DIRECTION_UP;
             int x = (int) it->x;
             int y = (int) (it->y - (double) PLAYER_SIZE / 2);
@@ -336,7 +337,8 @@ int do_tick(uint16_t timer, time_t cur_time) {
                 || (field_get(x + 1, y - 1) != BLOCK_EMPTY && player_intersects(it, x + 1, y - 1))) {
                 it->y = y + (double) PLAYER_SIZE / 2;
             }
-        } else if (it->input & INPUT_RIGHT) {
+        }
+        if (it->input & INPUT_RIGHT) {
             it->direction = DIRECTION_RIGHT;
             int y = (int) it->y;
             int x = (int) (it->x + (double) PLAYER_SIZE / 2);
@@ -346,7 +348,8 @@ int do_tick(uint16_t timer, time_t cur_time) {
                 || (field_get(x + 1, y + 1) != BLOCK_EMPTY && player_intersects(it, x + 1, y + 1))) {
                 it->x = x + 1 - (double) PLAYER_SIZE / 2;
             }
-        } else if (it->input & INPUT_DOWN) {
+        }
+        if (it->input & INPUT_DOWN) {
             it->direction = DIRECTION_DOWN;
             int x = (int) it->x;
             int y = (int) (it->y + (double) PLAYER_SIZE / 2);

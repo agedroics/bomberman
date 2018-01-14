@@ -8,8 +8,8 @@ void dyn_create(time_t cur_time, player *owner) {
     dyn->created = cur_time;
     dyn->owner = owner;
     dyn->carrier = NULL;
-    dyn->x = round(owner->x);
-    dyn->y = round(owner->y);
+    dyn->x = (int) owner->x + .5;
+    dyn->y = (int) owner->y + .5;
     dyn->power = owner->power;
     dyn->remote_detonated = owner->active_pwrups & ACTIVE_PWRUP_REMOTE;
     dyn->owner_can_kick = 0;
