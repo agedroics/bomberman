@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <netinet/in.h>
+#include <sys/socket.h>
 #include <arpa/inet.h>
 
 int read_args(int argc, char **argv, struct sockaddr_in *addr);

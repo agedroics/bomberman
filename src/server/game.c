@@ -73,8 +73,8 @@ static void init_field(void) {
     player *it;
     for (it = players; it; it = it->next) {
         do {
-            x = (uint8_t) ((rand() * 2) % (w - 2) + 1);
-            y = (uint8_t) ((rand() * 2) % (h - 2) + 1);
+            x = (uint8_t) (rand() % (w / 2) * 2 + 1);
+            y = (uint8_t) (rand() % (h / 2) * 2 + 1);
         } while (are_players_nearby(x, y, 2));
         it->x = x + .5;
         it->y = y + .5;
@@ -107,7 +107,7 @@ static int player_intersects(player *player, double x, double y) {
     double px2 = px1 + PLAYER_SIZE;
     double py1 = player->y - (double) PLAYER_SIZE / 2;
     double py2 = py1 + PLAYER_SIZE;
-    return px1 < x + 1 || px2 > x || py1 < y + 1 || py2 > y;
+    return px1 < x + 1 && px2 > x && py1 < y + 1 && py2 > y;
 }
 
 static uint8_t random_pwrup(void) {
@@ -372,7 +372,6 @@ int do_tick(uint16_t timer, time_t cur_time) {
         if ((cur_time - flame->created) / 1000 >= FLAME_TIMEOUT) {
             flame = flame_destroy(flame);
         } else {
-            player *it;
             for (it = players; it; it = it->next) {
                 if (it->dead) {
                     continue;
@@ -398,7 +397,6 @@ int do_tick(uint16_t timer, time_t cur_time) {
         if ((cur_time - pwrup->created) / 1000 >= PWRUP_TIMEOUT) {
             pwrup = pwrup_destroy(pwrup);
         } else {
-            player *it;
             for (it = players; it; it = it->next) {
                 if (it->dead) {
                     continue;
