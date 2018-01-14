@@ -1,6 +1,7 @@
 #ifndef BOMBERMAN_GAME_H
 #define BOMBERMAN_GAME_H
 
+#include <stdio.h>
 #include "object.h"
 #include "packet.h"
 

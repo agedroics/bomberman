@@ -169,6 +169,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
             }
             if (player_intersects(it, fill_x, fill_y)) {
                 it->dead = 1;
+                printf("%s was killed by the map\n", it->name);
             }
         }
         switch (fill_direction) {
@@ -215,8 +216,8 @@ int do_tick(uint16_t timer, time_t cur_time) {
             if (dyn->owner->max_count > dyn->owner->count && !(dyn->owner->active_pwrups & ACTIVE_PWRUP_REMOTE)) {
                 ++dyn->owner->count;
             }
-            uint8_t x = (uint8_t) round(dyn->x - .5);
-            uint8_t y = (uint8_t) round(dyn->y - .5);
+            uint8_t x = (uint8_t) dyn->x;
+            uint8_t y = (uint8_t) dyn->y;
             flame_create(cur_time, dyn->owner, x, y);
             spawn_flames(cur_time, dyn->owner, dyn->power, x - (uint8_t) 1, y, DIRECTION_LEFT);
             spawn_flames(cur_time, dyn->owner, dyn->power, x, y - (uint8_t) 1, DIRECTION_UP);
@@ -379,6 +380,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
                 if (player_intersects(it, flame->x, flame->y)) {
                     it->dead = 1;
                     ++flame->owner->frags;
+                    printf("%s was killed by %s\n", it->name, flame->owner->name);
                 }
             }
         }
