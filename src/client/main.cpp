@@ -90,26 +90,28 @@ int main(int argc, char **argv) {
     while (window.isOpen()) {
         time_t timestamp = time(nullptr);
         uint16_t input = 0;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-            input |= INPUT_LEFT;
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-            input |= INPUT_UP;
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-            input |= INPUT_RIGHT;
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-            input |= INPUT_DOWN;
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
-            input |= INPUT_PLANT;
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::F)) {
-            input |= INPUT_DETONATE;
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
-            input |= INPUT_PICK_UP;
+        if (window.hasFocus()) {
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+                input |= INPUT_LEFT;
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+                input |= INPUT_UP;
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+                input |= INPUT_RIGHT;
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+                input |= INPUT_DOWN;
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
+                input |= INPUT_PLANT;
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::F)) {
+                input |= INPUT_DETONATE;
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
+                input |= INPUT_PICK_UP;
+            }
         }
         while (window.pollEvent(event)) {
             switch (event.type) {
