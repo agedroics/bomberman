@@ -13,7 +13,7 @@ int send_msg(int fd, void *msg, size_t size) {
 }
 
 static void broadcast(void *msg, size_t size) {
-    player *it;
+    player_t *it;
     for (it = players; it; it = it->next) {
         send_msg(it->fd, msg, size);
     }
@@ -25,7 +25,7 @@ void send_lobby_status(void) {
     msg[0] = LOBBY_STATUS;
     msg[1] = player_count;
     int i;
-    player *it;
+    player_t *it;
     for (i = 0, it = players; i < player_count && it; ++i, it = it->next) {
         msg[2 + i * 25] = it->id;
         memcpy(msg + 3 + i * 25, it->name, 23);
@@ -41,7 +41,7 @@ void send_game_start(uint8_t *field, uint8_t w, uint8_t h) {
     msg[0] = GAME_START;
     msg[1] = player_count;
     int i;
-    player *it;
+    player_t *it;
     for (i = 0, it = players; it; ++i, it = it->next) {
         msg[2 + i * 29] = it->id;
         memcpy(2 + msg + i * 29 + 1, it->name, 23);
@@ -79,7 +79,7 @@ static int score_compar(const void *ptr1, const void *ptr2) {
 void send_game_over(void) {
     score *scores = malloc(player_count * sizeof(score));
     int i;
-    player *it;
+    player_t *it;
     for (i = 0, it = players; it; ++i, it = it->next) {
         scores[i].id = it->id;
         scores[i].frags = it->frags;
@@ -131,7 +131,7 @@ void send_objects(uint16_t timer) {
     }
 
     msg[size++] = player_count;
-    player *it;
+    player_t *it;
     for (it = players; it; it = it->next) {
         msg[size++] = it->id;
         msg[size++] = it->dead;

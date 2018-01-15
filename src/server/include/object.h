@@ -12,13 +12,13 @@
 
 typedef struct dyn {
     time_t created;
-    player *owner;
-    player *carrier;
+    player_t *owner;
+    player_t *carrier;
     double x;
     double y;
     uint8_t power;
     int remote_detonated;
-    player *kicked_by;
+    player_t *kicked_by;
     uint8_t slide_direction;
     int hit_by_flame;
     struct dyn *prev;
@@ -28,13 +28,13 @@ typedef struct dyn {
 extern dyn_t *dynamites;
 extern uint8_t dyn_cnt;
 
-void dyn_create(time_t cur_time, player *owner);
+void dyn_create(time_t cur_time, player_t *owner);
 
 dyn_t *dyn_destroy(dyn_t *dyn);
 
 typedef struct flame {
     time_t created;
-    player *owner;
+    player_t *owner;
     uint8_t x;
     uint8_t y;
     uint8_t spawn_pwrup_type;
@@ -45,7 +45,7 @@ typedef struct flame {
 extern flame_t *flames;
 extern uint8_t flame_cnt;
 
-void flame_create(time_t created, player *owner, uint8_t x, uint8_t y);
+void flame_create(time_t created, player_t *owner, uint8_t x, uint8_t y);
 
 flame_t *flame_destroy(flame_t *flame);
 

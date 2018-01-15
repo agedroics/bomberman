@@ -62,7 +62,7 @@ static void start_preparation(void) {
  * send_lobby_status()
  * thread exit
  */
-static void disconnect_client(int fd, player *player) {
+static void disconnect_client(int fd, player_t *player) {
     if (!player) {
         close(fd);
     } else {
@@ -81,6 +81,8 @@ static void disconnect_client(int fd, player *player) {
             } else if (all_players_ready()) {
                 start_game();
             }
+        } else {
+            remove_player_objects(player);
         }
         unlock_players();
     }
@@ -93,7 +95,7 @@ static void *client_thread(void *arg) {
     reader_init(&reader, fd);
     char *data;
     uint8_t response[3];
-    player *player = NULL;
+    player_t *player = NULL;
 
     for (;;) {
         data = get_bytes(&reader, 1);

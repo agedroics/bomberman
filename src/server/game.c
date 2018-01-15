@@ -17,7 +17,7 @@ static int are_players_nearby(uint8_t x, uint8_t y, uint8_t distance) {
     int x2 = x + 1 + distance;
     int y1 = y - distance;
     int y2 = y + 1 + distance;
-    player *it;
+    player_t *it;
     for (it = players; it; it = it->next) {
         if (!it->x) {
             continue;
@@ -73,7 +73,7 @@ static void init_field(int width, int height) {
         }
     }
 
-    player *it;
+    player_t *it;
     for (it = players; it; it = it->next) {
         do {
             x = (uint8_t) (rand() % (w / 2) * 2 + 1);
@@ -106,7 +106,29 @@ void setup_game(void) {
     send_game_start(field, (uint8_t) w, (uint8_t) h);
 }
 
-static int player_intersects(player *player, double x, double y) {
+void remove_player_objects(player_t *player) {
+    dyn_t *dyn;
+    for (dyn = dynamites; dyn; dyn = dyn->next) {
+        if (dyn->owner == player) {
+            dyn = dyn_destroy(dyn);
+            if (!dyn) {
+                break;
+            }
+        }
+    }
+
+    flame_t *flame;
+    for (flame = flames; flame; flame = flame->next) {
+        if (flame->owner == player) {
+            flame = flame_destroy(flame);
+            if (!flame) {
+                break;
+            }
+        }
+    }
+}
+
+static int player_intersects(player_t *player, double x, double y) {
     double px1 = player->x - (double) PLAYER_SIZE / 2;
     double px2 = px1 + PLAYER_SIZE;
     double py1 = player->y - (double) PLAYER_SIZE / 2;
@@ -131,7 +153,7 @@ static uint8_t random_pwrup(void) {
     }
 }
 
-static void spawn_flames(time_t cur_time, player *owner, uint8_t power, uint8_t x, uint8_t y, uint8_t direction) {
+static void spawn_flames(time_t cur_time, player_t *owner, uint8_t power, uint8_t x, uint8_t y, uint8_t direction) {
     if (!power || field_get(x, y) == BLOCK_WALL) {
         return;
     }
@@ -164,7 +186,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
         field_set(fill_x, fill_y, BLOCK_WALL);
         map_upd_create((uint8_t) fill_x, (uint8_t) fill_y, BLOCK_WALL);
 
-        player *it;
+        player_t *it;
         for (it = players; it; it = it->next) {
             if (!it->dead && player_intersects(it, fill_x, fill_y)) {
                 it->dead = 1;
@@ -175,7 +197,13 @@ int do_tick(uint16_t timer, time_t cur_time) {
         dyn_t *dyn;
         for (dyn = dynamites; dyn; dyn = dyn->next) {
             if (dyn->x - 1.5 < fill_x && dyn->x + .5 > fill_x && dyn->y - 1.5 < fill_y && dyn->y + .5 > fill_y) {
+                if (!(dyn->owner->active_pwrups & ACTIVE_PWRUP_REMOTE) || dyn->remote_detonated) {
+                    ++dyn->owner->count;
+                }
                 dyn = dyn_destroy(dyn);
+                if (!dyn) {
+                    break;
+                }
             }
         }
 
@@ -220,6 +248,9 @@ int do_tick(uint16_t timer, time_t cur_time) {
     dyn_t *dyn;
     for (dyn = dynamites; dyn; dyn = dyn->next) {
         if ((cur_time - dyn->created) / 1000 >= DYNAMITE_TIMER || (dyn->remote_detonated && dyn->owner->detonate_pressed) || dyn->hit_by_flame) {
+            if (!(dyn->owner->active_pwrups & ACTIVE_PWRUP_REMOTE) || dyn->remote_detonated) {
+                ++dyn->owner->count;
+            }
             uint8_t x = (uint8_t) dyn->x;
             uint8_t y = (uint8_t) dyn->y;
             flame_create(cur_time, dyn->owner, x, y);
@@ -275,7 +306,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
                     }
                 }
             }
-            player *it;
+            player_t *it;
             for (it = players; it; it = it->next) {
                 if (!it->dead && player_intersects(it, dyn->x, dyn->y)) {
                     if (it->active_pwrups & ACTIVE_PWRUP_KICK && dyn->kicked_by != it) {
@@ -308,7 +339,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
     }
 
     int alive_players = 0;
-    player *it;
+    player_t *it;
     for (it = players; it; it = it->next) {
         if (it->dead) {
             continue;
@@ -323,45 +354,45 @@ int do_tick(uint16_t timer, time_t cur_time) {
         if (it->input & INPUT_LEFT) {
             it->direction = DIRECTION_LEFT;
             int y = (int) it->y;
-            int x = (int) (it->x - (double) PLAYER_SIZE / 2);
+            int x = (int) it->x - 1;
             it->x -= (double) it->speed / TICK_RATE;
-            if ((field_get(x - 1, y - 1) != BLOCK_EMPTY && player_intersects(it, x - 1, y - 1))
-                || (field_get(x - 1, y) != BLOCK_EMPTY && player_intersects(it, x - 1, y))
-                || (field_get(x - 1, y + 1) != BLOCK_EMPTY && player_intersects(it, x - 1, y + 1))) {
-                it->x = x + (double) PLAYER_SIZE / 2;
+            if ((field_get(x, y - 1) != BLOCK_EMPTY && player_intersects(it, x, y - 1))
+                || (field_get(x, y) != BLOCK_EMPTY && player_intersects(it, x, y))
+                || (field_get(x, y + 1) != BLOCK_EMPTY && player_intersects(it, x, y + 1))) {
+                it->x = x + 1 + (double) PLAYER_SIZE / 2;
             }
         }
         if (it->input & INPUT_UP) {
             it->direction = DIRECTION_UP;
             int x = (int) it->x;
-            int y = (int) (it->y - (double) PLAYER_SIZE / 2);
+            int y = (int) it->y - 1;
             it->y -= (double) it->speed / TICK_RATE;
-            if ((field_get(x - 1, y - 1) != BLOCK_EMPTY && player_intersects(it, x - 1, y - 1))
-                || (field_get(x, y - 1) != BLOCK_EMPTY && player_intersects(it, x, y - 1))
-                || (field_get(x + 1, y - 1) != BLOCK_EMPTY && player_intersects(it, x + 1, y - 1))) {
-                it->y = y + (double) PLAYER_SIZE / 2;
+            if ((field_get(x - 1, y) != BLOCK_EMPTY && player_intersects(it, x - 1, y))
+                || (field_get(x, y) != BLOCK_EMPTY && player_intersects(it, x, y))
+                || (field_get(x + 1, y) != BLOCK_EMPTY && player_intersects(it, x + 1, y))) {
+                it->y = y + 1 + (double) PLAYER_SIZE / 2;
             }
         }
         if (it->input & INPUT_RIGHT) {
             it->direction = DIRECTION_RIGHT;
             int y = (int) it->y;
-            int x = (int) (it->x + (double) PLAYER_SIZE / 2);
+            int x = (int) it->x + 1;
             it->x += (double) it->speed / TICK_RATE;
-            if ((field_get(x + 1, y - 1) != BLOCK_EMPTY && player_intersects(it, x + 1, y - 1))
-                || (field_get(x + 1, y) != BLOCK_EMPTY && player_intersects(it, x + 1, y))
-                || (field_get(x + 1, y + 1) != BLOCK_EMPTY && player_intersects(it, x + 1, y + 1))) {
-                it->x = x + 1 - (double) PLAYER_SIZE / 2;
+            if ((field_get(x, y - 1) != BLOCK_EMPTY && player_intersects(it, x, y - 1))
+                || (field_get(x, y) != BLOCK_EMPTY && player_intersects(it, x, y))
+                || (field_get(x, y + 1) != BLOCK_EMPTY && player_intersects(it, x, y + 1))) {
+                it->x = x - (double) PLAYER_SIZE / 2;
             }
         }
         if (it->input & INPUT_DOWN) {
             it->direction = DIRECTION_DOWN;
             int x = (int) it->x;
-            int y = (int) (it->y + (double) PLAYER_SIZE / 2);
+            int y = (int) it->y + 1;
             it->y += (double) it->speed / TICK_RATE;
-            if ((field_get(x - 1, y + 1) != BLOCK_EMPTY && player_intersects(it, x - 1, y + 1))
-                || (field_get(x, y + 1) != BLOCK_EMPTY && player_intersects(it, x, y + 1))
-                || (field_get(x + 1, y + 1) != BLOCK_EMPTY && player_intersects(it, x + 1, y + 1))) {
-                it->y = y + 1 - (double) PLAYER_SIZE / 2;
+            if ((field_get(x - 1, y) != BLOCK_EMPTY && player_intersects(it, x - 1, y))
+                || (field_get(x, y) != BLOCK_EMPTY && player_intersects(it, x, y))
+                || (field_get(x + 1, y) != BLOCK_EMPTY && player_intersects(it, x + 1, y))) {
+                it->y = y - (double) PLAYER_SIZE / 2;
             }
         }
 
@@ -387,8 +418,12 @@ int do_tick(uint16_t timer, time_t cur_time) {
             for (it = players; it; it = it->next) {
                 if (!it->dead && player_intersects(it, flame->x, flame->y)) {
                     it->dead = 1;
-                    ++flame->owner->frags;
-                    printf("%s was killed by %s\n", it->name, flame->owner->name);
+                    if (it != flame->owner) {
+                        ++flame->owner->frags;
+                        printf("%s was killed by %s\n", it->name, flame->owner->name);
+                    } else {
+                        printf("%s committed suicide\n", it->name);
+                    }
                 }
             }
             for (dyn = dynamites; dyn; dyn = dyn->next) {
@@ -477,7 +512,7 @@ void reset_game(void) {
 
     cleanup_objects();
 
-    player *it;
+    player_t *it;
     for (it = players; it; it = it->next) {
         it->ready = 0;
         it->input = 0;

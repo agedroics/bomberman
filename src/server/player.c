@@ -2,14 +2,14 @@
 
 static pthread_mutex_t players_lock = PTHREAD_MUTEX_INITIALIZER;
 static uint8_t max_id = 0;
-player *players = NULL;
+player_t *players = NULL;
 uint8_t player_count = 0;
 
-player *add_player(int fd, char *name) {
+player_t *add_player(int fd, char *name) {
     if (player_count + 1 > MAX_PLAYERS) {
         return NULL;
     }
-    player *player = calloc(1, sizeof(struct player));
+    player_t *player = calloc(1, sizeof(struct player));
     player->prev = NULL;
     player->next = players;
     if (players) {
@@ -27,7 +27,7 @@ player *add_player(int fd, char *name) {
     return player;
 }
 
-void remove_player(player *player) {
+void remove_player(player_t *player) {
     if (!player) {
         return;
     }
@@ -46,7 +46,7 @@ void remove_player(player *player) {
 }
 
 int all_players_ready(void) {
-    player *it;
+    player_t *it;
     for (it = players; it; it = it->next) {
         if (!it->ready) {
             return 0;
@@ -56,7 +56,7 @@ int all_players_ready(void) {
 }
 
 void set_players_not_ready(void) {
-    player *it;
+    player_t *it;
     for (it = players; it; it = it->next) {
         it->ready = 0;
     }

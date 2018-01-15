@@ -15,6 +15,8 @@ void setup_game(void);
 
 void reset_game(void);
 
+void remove_player_objects(player_t *player);
+
 /**
  * @return game over
  */

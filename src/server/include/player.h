@@ -39,9 +39,9 @@ typedef struct player {
     int detonate_pressed;
     int pick_up_pressed;
     int carrying_dyn;
-} player;
+} player_t;
 
-extern player *players;
+extern player_t *players;
 extern uint8_t player_count;
 
 /*
@@ -54,7 +54,7 @@ extern uint8_t player_count;
  * increased player_count
  * set socket options
  */
-player *add_player(int fd, char *name);
+player_t *add_player(int fd, char *name);
 
 /*
  * side effects:
@@ -63,7 +63,7 @@ player *add_player(int fd, char *name);
  * socket closed
  * decreased player_count
  */
-void remove_player(player *player);
+void remove_player(player_t *player);
 
 void lock_players(void);
 

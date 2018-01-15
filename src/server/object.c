@@ -3,7 +3,7 @@
 dyn_t *dynamites;
 uint8_t dyn_cnt;
 
-void dyn_create(time_t cur_time, player *owner) {
+void dyn_create(time_t cur_time, player_t *owner) {
     dyn_t *dyn = malloc(sizeof(dyn_t));
     dyn->created = cur_time;
     dyn->owner = owner;
@@ -21,9 +21,6 @@ void dyn_create(time_t cur_time, player *owner) {
 }
 
 dyn_t *dyn_destroy(dyn_t *dyn) {
-    if (!(dyn->owner->active_pwrups & ACTIVE_PWRUP_REMOTE) || dyn->remote_detonated) {
-        ++dyn->owner->count;
-    }
     dyn_t *next = dyn->next;
     if (dyn->prev) {
         dyn->prev->next = next;
@@ -42,7 +39,7 @@ dyn_t *dyn_destroy(dyn_t *dyn) {
 flame_t *flames;
 uint8_t flame_cnt;
 
-void flame_create(time_t created, player *owner, uint8_t x, uint8_t y) {
+void flame_create(time_t created, player_t *owner, uint8_t x, uint8_t y) {
     flame_t *flame = malloc(sizeof(flame_t));
     flame->created = created;
     flame->owner = owner;
@@ -122,25 +119,25 @@ void map_upd_create(uint8_t x, uint8_t y, uint8_t block) {
 }
 
 void cleanup_objects(void) {
-    dyn_cnt = 0;
     while (dynamites) {
         dyn_destroy(dynamites);
     }
+    dyn_cnt = 0;
 
-    flame_cnt = 0;
     while (flames) {
         flame_destroy(flames);
     }
+    flame_cnt = 0;
 
-    pwrup_cnt = 0;
     while (pwrups) {
         pwrup_destroy(pwrups);
     }
+    pwrup_cnt = 0;
 
-    map_upd_cnt = 0;
     map_upd_t *map_upd;
     while ((map_upd = map_updates)) {
         map_updates = map_upd->next;
         free(map_upd);
     }
+    map_upd_cnt = 0;
 }
