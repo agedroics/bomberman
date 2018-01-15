@@ -351,11 +351,24 @@ int do_tick(uint16_t timer, time_t cur_time) {
             --it->count;
         }
 
+        double actual_speed = it->speed;
+        uint16_t directional_input = it->input & (uint16_t) (INPUT_LEFT | INPUT_UP | INPUT_RIGHT | INPUT_DOWN);
+        if (directional_input == (INPUT_DOWN | INPUT_LEFT | INPUT_UP) || directional_input == (INPUT_UP | INPUT_RIGHT | INPUT_DOWN)) {
+            it->input &= ~(INPUT_DOWN | INPUT_UP);
+        } else if (directional_input == (INPUT_LEFT | INPUT_UP | INPUT_RIGHT) || directional_input == (INPUT_RIGHT | INPUT_DOWN | INPUT_LEFT)) {
+            it->input &= ~(INPUT_LEFT | INPUT_RIGHT);
+        } else if (directional_input == (INPUT_LEFT | INPUT_UP) || directional_input == (INPUT_UP | INPUT_RIGHT)
+            || directional_input == (INPUT_RIGHT | INPUT_DOWN) || directional_input == (INPUT_DOWN | INPUT_LEFT)) {
+            actual_speed *= sqrt(2) / 2;
+        } else if ((directional_input & (INPUT_LEFT | INPUT_RIGHT)) || (directional_input & (INPUT_UP | INPUT_DOWN))) {
+            it->input &= ~(INPUT_LEFT | INPUT_UP | INPUT_RIGHT | INPUT_DOWN);
+        }
+
         if (it->input & INPUT_LEFT) {
             it->direction = DIRECTION_LEFT;
             int y = (int) it->y;
             int x = (int) it->x - 1;
-            it->x -= (double) it->speed / TICK_RATE;
+            it->x -= actual_speed / TICK_RATE;
             if ((field_get(x, y - 1) != BLOCK_EMPTY && player_intersects(it, x, y - 1))
                 || (field_get(x, y) != BLOCK_EMPTY && player_intersects(it, x, y))
                 || (field_get(x, y + 1) != BLOCK_EMPTY && player_intersects(it, x, y + 1))) {
@@ -366,7 +379,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
             it->direction = DIRECTION_UP;
             int x = (int) it->x;
             int y = (int) it->y - 1;
-            it->y -= (double) it->speed / TICK_RATE;
+            it->y -= actual_speed / TICK_RATE;
             if ((field_get(x - 1, y) != BLOCK_EMPTY && player_intersects(it, x - 1, y))
                 || (field_get(x, y) != BLOCK_EMPTY && player_intersects(it, x, y))
                 || (field_get(x + 1, y) != BLOCK_EMPTY && player_intersects(it, x + 1, y))) {
@@ -377,7 +390,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
             it->direction = DIRECTION_RIGHT;
             int y = (int) it->y;
             int x = (int) it->x + 1;
-            it->x += (double) it->speed / TICK_RATE;
+            it->x += actual_speed / TICK_RATE;
             if ((field_get(x, y - 1) != BLOCK_EMPTY && player_intersects(it, x, y - 1))
                 || (field_get(x, y) != BLOCK_EMPTY && player_intersects(it, x, y))
                 || (field_get(x, y + 1) != BLOCK_EMPTY && player_intersects(it, x, y + 1))) {
@@ -388,7 +401,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
             it->direction = DIRECTION_DOWN;
             int x = (int) it->x;
             int y = (int) it->y + 1;
-            it->y += (double) it->speed / TICK_RATE;
+            it->y += actual_speed / TICK_RATE;
             if ((field_get(x - 1, y) != BLOCK_EMPTY && player_intersects(it, x - 1, y))
                 || (field_get(x, y) != BLOCK_EMPTY && player_intersects(it, x, y))
                 || (field_get(x + 1, y) != BLOCK_EMPTY && player_intersects(it, x + 1, y))) {
