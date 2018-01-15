@@ -163,6 +163,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
         last_fill = cur_time;
         field_set(fill_x, fill_y, BLOCK_WALL);
         map_upd_create((uint8_t) fill_x, (uint8_t) fill_y, BLOCK_WALL);
+
         player *it;
         for (it = players; it; it = it->next) {
             if (!it->dead && player_intersects(it, fill_x, fill_y)) {
@@ -170,6 +171,14 @@ int do_tick(uint16_t timer, time_t cur_time) {
                 printf("%s was killed by the map\n", it->name);
             }
         }
+
+        dyn_t *dyn;
+        for (dyn = dynamites; dyn; dyn = dyn->next) {
+            if (dyn->x - 1.5 < fill_x && dyn->x + .5 > fill_x && dyn->y - 1.5 < fill_y && dyn->y + .5 > fill_y) {
+                dyn = dyn_destroy(dyn);
+            }
+        }
+
         switch (fill_direction) {
             case DIRECTION_LEFT:
                 if (fill_x > h - fill_y - 1) {
@@ -211,9 +220,6 @@ int do_tick(uint16_t timer, time_t cur_time) {
     dyn_t *dyn;
     for (dyn = dynamites; dyn; dyn = dyn->next) {
         if ((cur_time - dyn->created) / 1000 >= DYNAMITE_TIMER || (dyn->remote_detonated && dyn->owner->detonate_pressed) || dyn->hit_by_flame) {
-            if (!(dyn->owner->active_pwrups & ACTIVE_PWRUP_REMOTE) || dyn->remote_detonated) {
-                ++dyn->owner->count;
-            }
             uint8_t x = (uint8_t) dyn->x;
             uint8_t y = (uint8_t) dyn->y;
             flame_create(cur_time, dyn->owner, x, y);
@@ -375,6 +381,8 @@ int do_tick(uint16_t timer, time_t cur_time) {
                 pwrup_create(cur_time, flame->x, flame->y, flame->spawn_pwrup_type);
             }
             flame = flame_destroy(flame);
+        } else if (field_get(flame->x, flame->y) == BLOCK_WALL) {
+            flame = flame_destroy(flame);
         } else {
             for (it = players; it; it = it->next) {
                 if (!it->dead && player_intersects(it, flame->x, flame->y)) {
@@ -384,8 +392,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
                 }
             }
             for (dyn = dynamites; dyn; dyn = dyn->next) {
-                if (dyn->x - 1.5 < flame->x && dyn->x + .5 > flame->x
-                    && dyn->y - 1.5 < flame->y && dyn->y + .5 > flame->y) {
+                if (dyn->x - 1.5 < flame->x && dyn->x + .5 > flame->x && dyn->y - 1.5 < flame->y && dyn->y + .5 > flame->y) {
                     dyn->hit_by_flame = 1;
                 }
             }
@@ -406,7 +413,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
 
     pwrup_t *pwrup;
     for (pwrup = pwrups; pwrup; pwrup = pwrup->next) {
-        if ((cur_time - pwrup->created) / 1000 >= PWRUP_TIMEOUT) {
+        if ((cur_time - pwrup->created) / 1000 >= PWRUP_TIMEOUT || field_get(pwrup->x, pwrup->y) == BLOCK_WALL) {
             pwrup = pwrup_destroy(pwrup);
         } else {
             for (it = players; it; it = it->next) {

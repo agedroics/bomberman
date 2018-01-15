@@ -21,6 +21,9 @@ void dyn_create(time_t cur_time, player *owner) {
 }
 
 dyn_t *dyn_destroy(dyn_t *dyn) {
+    if (!(dyn->owner->active_pwrups & ACTIVE_PWRUP_REMOTE) || dyn->remote_detonated) {
+        ++dyn->owner->count;
+    }
     dyn_t *next = dyn->next;
     if (dyn->prev) {
         dyn->prev->next = next;
