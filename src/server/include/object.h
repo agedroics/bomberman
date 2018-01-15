@@ -8,7 +8,7 @@
 #define DYNAMITE_TIMER 3
 #define DYNAMITE_SLIDE_V 6
 #define FLAME_TIMEOUT 2
-#define PWRUP_TIMEOUT 10
+#define PWRUP_TIMEOUT 20
 
 typedef struct dyn {
     time_t created;
@@ -20,6 +20,7 @@ typedef struct dyn {
     int remote_detonated;
     player *kicked_by;
     uint8_t slide_direction;
+    int hit_by_flame;
     struct dyn *prev;
     struct dyn *next;
 } dyn_t;
@@ -36,6 +37,7 @@ typedef struct flame {
     player *owner;
     uint8_t x;
     uint8_t y;
+    uint8_t spawn_pwrup_type;
     struct flame *prev;
     struct flame *next;
 } flame_t;

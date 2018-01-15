@@ -19,10 +19,10 @@ player *add_player(int fd, char *name) {
     player->fd = fd;
     strncpy(player->name, name, 23);
     player->id = max_id++;
-    player->power = 1;
-    player->speed = PLAYER_SPEED;
-    player->count = 1;
-    player->max_count = 1;
+    player->power = DEFAULT_POWER;
+    player->speed = DEFAULT_SPEED;
+    player->count = DEFAULT_COUNT;
+    player->max_count = DEFAULT_COUNT;
     ++player_count;
     return player;
 }

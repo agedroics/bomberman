@@ -13,6 +13,7 @@ void dyn_create(time_t cur_time, player *owner) {
     dyn->power = owner->power;
     dyn->remote_detonated = owner->active_pwrups & ACTIVE_PWRUP_REMOTE;
     dyn->kicked_by = NULL;
+    dyn->hit_by_flame = 0;
     dyn->prev = NULL;
     dyn->next = dynamites;
     dynamites = dyn;
@@ -44,6 +45,7 @@ void flame_create(time_t created, player *owner, uint8_t x, uint8_t y) {
     flame->owner = owner;
     flame->x = x;
     flame->y = y;
+    flame->spawn_pwrup_type = UINT8_MAX;
     flame->prev = NULL;
     flame->next = flames;
     if (flames) {

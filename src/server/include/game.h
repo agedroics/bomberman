@@ -5,9 +5,11 @@
 #include "object.h"
 #include "packet.h"
 
+#define TIMER 200
 #define TICK_RATE 30
-#define TIMER 120
-#define FILL_SPEED 4
+#define FILL_SPEED 15
+#define FIELD_WIDTH 23
+#define FIELD_HEIGHT 23
 
 void setup_game(void);
 

@@ -7,13 +7,15 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#define MAX_PLAYERS 8
+#define MAX_PLAYERS 16
 #define PLAYER_SIZE 0.8
-#define PLAYER_SPEED 3
 
-#define MAX_POWER 5
+#define DEFAULT_POWER 2
+#define MAX_POWER 4
+#define DEFAULT_COUNT 1
 #define MAX_COUNT 3
-#define MAX_SPEED 6
+#define DEFAULT_SPEED 5
+#define MAX_SPEED 8
 
 typedef struct player {
     struct player *prev;

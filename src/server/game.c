@@ -1,8 +1,8 @@
 #include "game.h"
 
 static uint8_t *field;
-static uint8_t w = 15;
-static uint8_t h = 15;
+static int w;
+static int h;
 
 static uint8_t field_get(int x, int y) {
     return field[y * h + x];
@@ -30,7 +30,10 @@ static int are_players_nearby(uint8_t x, uint8_t y, uint8_t distance) {
     return 0;
 }
 
-static void init_field(void) {
+static void init_field(int width, int height) {
+    w = width;
+    h = height;
+
     // minimum field size n+2 x n+2
     if (w < player_count + 2) {
         w = player_count + (uint8_t) 2;
@@ -47,7 +50,7 @@ static void init_field(void) {
         ++h;
     }
 
-    field = malloc(w * h);
+    field = malloc((size_t) w * h);
 
     // set field top and bottom walls
     uint8_t x, y;
@@ -98,9 +101,9 @@ static void init_field(void) {
 
 void setup_game(void) {
     if (!field) {
-        init_field();
+        init_field(FIELD_WIDTH, FIELD_HEIGHT);
     }
-    send_game_start(field, w, h);
+    send_game_start(field, (uint8_t) w, (uint8_t) h);
 }
 
 static int player_intersects(player *player, double x, double y) {
@@ -135,10 +138,7 @@ static void spawn_flames(time_t cur_time, player *owner, uint8_t power, uint8_t 
     flame_create(cur_time, owner, x, y);
     if (field_get(x, y) == BLOCK_BOX) {
         map_upd_create(x, y, BLOCK_EMPTY);
-        uint8_t pwrup_type = random_pwrup();
-        if (pwrup_type != UINT8_MAX) {
-            pwrup_create(cur_time, x, y, pwrup_type);
-        }
+        flames->spawn_pwrup_type = random_pwrup();
     } else {
         if (direction == DIRECTION_LEFT) {
             --x;
@@ -154,15 +154,15 @@ static void spawn_flames(time_t cur_time, player *owner, uint8_t power, uint8_t 
 }
 
 static time_t last_fill;
-static uint8_t fill_x = 1;
-static uint8_t fill_y = 1;
+static int fill_x = 1;
+static int fill_y = 1;
 static uint8_t fill_direction = DIRECTION_RIGHT;
 
 int do_tick(uint16_t timer, time_t cur_time) {
     if (!timer && (!last_fill || cur_time - last_fill >= 1000 / FILL_SPEED)) {
         last_fill = cur_time;
         field_set(fill_x, fill_y, BLOCK_WALL);
-        map_upd_create(fill_x, fill_y, BLOCK_WALL);
+        map_upd_create((uint8_t) fill_x, (uint8_t) fill_y, BLOCK_WALL);
         player *it;
         for (it = players; it; it = it->next) {
             if (!it->dead && player_intersects(it, fill_x, fill_y)) {
@@ -210,7 +210,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
 
     dyn_t *dyn;
     for (dyn = dynamites; dyn; dyn = dyn->next) {
-        if ((cur_time - dyn->created) / 1000 >= DYNAMITE_TIMER || (dyn->remote_detonated && dyn->owner->detonate_pressed)) {
+        if ((cur_time - dyn->created) / 1000 >= DYNAMITE_TIMER || (dyn->remote_detonated && dyn->owner->detonate_pressed) || dyn->hit_by_flame) {
             if (!(dyn->owner->active_pwrups & ACTIVE_PWRUP_REMOTE) || dyn->remote_detonated) {
                 ++dyn->owner->count;
             }
@@ -371,6 +371,9 @@ int do_tick(uint16_t timer, time_t cur_time) {
     flame_t *flame;
     for (flame = flames; flame; flame = flame->next) {
         if ((cur_time - flame->created) / 1000 >= FLAME_TIMEOUT) {
+            if (flame->spawn_pwrup_type != UINT8_MAX) {
+                pwrup_create(cur_time, flame->x, flame->y, flame->spawn_pwrup_type);
+            }
             flame = flame_destroy(flame);
         } else {
             for (it = players; it; it = it->next) {
@@ -378,6 +381,21 @@ int do_tick(uint16_t timer, time_t cur_time) {
                     it->dead = 1;
                     ++flame->owner->frags;
                     printf("%s was killed by %s\n", it->name, flame->owner->name);
+                }
+            }
+            for (dyn = dynamites; dyn; dyn = dyn->next) {
+                if (dyn->x - 1.5 < flame->x && dyn->x + .5 > flame->x
+                    && dyn->y - 1.5 < flame->y && dyn->y + .5 > flame->y) {
+                    dyn->hit_by_flame = 1;
+                }
+            }
+            pwrup_t *pwrup;
+            for (pwrup = pwrups; pwrup; pwrup = pwrup->next) {
+                if (flame->x == pwrup->x && flame->y == pwrup->y) {
+                    pwrup = pwrup_destroy(pwrup);
+                    if (!pwrup) {
+                        break;
+                    }
                 }
             }
         }
@@ -392,10 +410,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
             pwrup = pwrup_destroy(pwrup);
         } else {
             for (it = players; it; it = it->next) {
-                if (it->dead) {
-                    continue;
-                }
-                if (player_intersects(it, pwrup->x, pwrup->y)) {
+                if (!it->dead && player_intersects(it, pwrup->x, pwrup->y)) {
                     switch (pwrup->type) {
                         case PWRUP_POWER:
                             if (it->power < MAX_POWER) {
@@ -462,10 +477,10 @@ void reset_game(void) {
         it->x = 0;
         it->y = 0;
         it->frags = 0;
-        it->power = 1;
-        it->speed = PLAYER_SPEED;
-        it->count = 1;
-        it->max_count = 1;
+        it->power = DEFAULT_POWER;
+        it->speed = DEFAULT_SPEED;
+        it->count = DEFAULT_COUNT;
+        it->max_count = DEFAULT_COUNT;
         it->active_pwrups = 0;
         it->dead = 0;
         it->plant_pressed = 0;
