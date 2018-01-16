@@ -90,9 +90,7 @@
  * field width [0;255] (1)
  * field height [0;255] (1)
  * array of BLOCK_* (field width * field height)
- * (optional) dynamite timer in s, default 5 (1)
- * TODO: define default dynamite slide velocity
- * (optional) dynamite slide velocity / 10 in u/s [0.1;25.5], default . (1)
+ * dynamite timer in s (1)
  */
 #define GAME_START 0x08u
 
