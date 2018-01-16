@@ -199,7 +199,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
 
     dyn_t *dyn;
     for (dyn = dynamites; dyn; dyn = dyn->next) {
-        if ((cur_time - dyn->created) / 1000 >= DYNAMITE_TIMER || (dyn->remote_detonated && dyn->owner->detonate_pressed) || dyn->hit_by_flame) {
+        if (cur_time - dyn->created >= DYNAMITE_TIMER * 1000 || (dyn->remote_detonated && dyn->owner->detonate_pressed) || dyn->hit_by_flame) {
             if (!(dyn->owner->active_pwrups & ACTIVE_PWRUP_REMOTE) || dyn->remote_detonated) {
                 ++dyn->owner->count;
             }
@@ -372,7 +372,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
 
     flame_t *flame;
     for (flame = flames; flame; flame = flame->next) {
-        if ((cur_time - flame->created) / 1000 >= FLAME_TIMEOUT) {
+        if (cur_time - flame->created >= FLAME_TIMEOUT * 1000) {
             if (flame->spawn_pwrup_type != UINT8_MAX) {
                 pwrup_create(cur_time, flame->x, flame->y, flame->spawn_pwrup_type);
             }
@@ -413,7 +413,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
 
     pwrup_t *pwrup;
     for (pwrup = pwrups; pwrup; pwrup = pwrup->next) {
-        if ((cur_time - pwrup->created) / 1000 >= PWRUP_TIMEOUT || field_get(pwrup->x, pwrup->y) == BLOCK_WALL) {
+        if (cur_time - pwrup->created >= PWRUP_TIMEOUT * 1000 || field_get(pwrup->x, pwrup->y) == BLOCK_WALL) {
             pwrup = pwrup_destroy(pwrup);
         } else {
             for (it = players; it; it = it->next) {

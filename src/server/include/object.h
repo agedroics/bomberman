@@ -7,7 +7,7 @@
 
 #define DYNAMITE_TIMER 3
 #define DYNAMITE_SLIDE_V 6
-#define FLAME_TIMEOUT 2
+#define FLAME_TIMEOUT 0.5
 #define PWRUP_TIMEOUT 20
 
 typedef struct dyn {

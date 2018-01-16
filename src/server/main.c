@@ -76,6 +76,7 @@ static void disconnect_client(int fd, player_t *player) {
             }
         } else if (state == STATE_PREPARING) {
             if (player_count < 2) {
+                send_game_over();
                 puts("LOBBY STAGE");
                 state = STATE_LOBBY;
             } else if (all_players_ready()) {

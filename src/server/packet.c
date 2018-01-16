@@ -56,7 +56,7 @@ void send_game_start(uint8_t *field, uint8_t w, uint8_t h) {
     msg[offset++] = h;
     memcpy(msg + offset, field, w * h);
     offset += w * h;
-    msg[offset] = DYNAMITE_TIMER;
+    msg[offset] = (uint8_t) DYNAMITE_TIMER;
     broadcast(msg, size);
     free(msg);
 }
