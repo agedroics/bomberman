@@ -5,11 +5,11 @@ static int w;
 static int h;
 
 static uint8_t field_get(int x, int y) {
-    return field[y * h + x];
+    return field[y * w + x];
 }
 
 static void field_set(int x, int y, uint8_t val) {
-    field[y * h + x] = val;
+    field[y * w + x] = val;
 }
 
 static void init_field(int width, int height) {

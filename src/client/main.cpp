@@ -2,17 +2,16 @@
 #include <arpa/inet.h>
 
 extern "C" {
-    #include "reader.h"
-    #include "utils.h"
     #include "packet.h"
 }
 
-#define POLL_RATE 60
+#define FRAMERATE 60
 
 #define STATE_LOBBY 1
 #define STATE_IN_PROGRESS 2
 
 static int fd;
+static uint8_t id;
 static int state = STATE_LOBBY;
 
 static void get_fd(char *ip, char *port) {
@@ -33,14 +32,88 @@ static void get_fd(char *ip, char *port) {
     }
 }
 
+static void fail_send(void) {
+    fprintf(stderr, "Failed to send message to server: %s\n", strerror(errno));
+    exit(-1);
+}
+
 static void *keep_alive_thread(void *arg) {
     uint8_t id = *(uint8_t *) arg;
     for (;;) {
         if (send_keep_alive(fd, id) == -1) {
-            fprintf(stderr, "Failed to send message to server: %s\n", strerror(errno));
-            exit(-1);
+            fail_send();
         }
         sleep(8);
+    }
+    pthread_exit(nullptr);
+}
+
+static void *data_thread(void *arg) {
+    auto *reader = (reader_t *) arg;
+    char *data;
+    int result;
+
+    while ((data = get_bytes(reader, 1))) {
+        switch (*data) {
+            case LOBBY_STATUS:
+                pthread_mutex_lock(&state_lock);
+                result = parse_lobby_status(reader);
+                pthread_mutex_unlock(&state_lock);
+                if (result == -1) {
+                    fprintf(stderr, "Failed to read LOBBY_STATUS packet\n");
+                    exit(-1);
+                }
+                break;
+            case GAME_START:
+                pthread_mutex_lock(&state_lock);
+                result = parse_game_start(reader);
+                pthread_mutex_unlock(&state_lock);
+                if (result == -1) {
+                    fprintf(stderr, "Failed to read GAME_START packet\n");
+                    exit(-1);
+                }
+                if (send_ready(fd, id) == -1) {
+                    fail_send();
+                }
+                puts("STARTING GAME");
+                state = STATE_IN_PROGRESS;
+                break;
+            case MAP_UPDATE:
+                pthread_mutex_lock(&state_lock);
+                result = parse_map_update(reader);
+                pthread_mutex_unlock(&state_lock);
+                if (result == -1) {
+                    fprintf(stderr, "Failed to read MAP_UPDATE packet\n");
+                    exit(-1);
+                }
+                break;
+            case OBJECTS:
+                pthread_mutex_lock(&state_lock);
+                result = parse_objects(reader);
+                pthread_mutex_unlock(&state_lock);
+                if (result == -1) {
+                    fprintf(stderr, "Failed to read OBJECTS packet\n");
+                    exit(-1);
+                }
+                break;
+            case GAME_OVER:
+                pthread_mutex_lock(&state_lock);
+                result = parse_game_over(reader);
+                pthread_mutex_unlock(&state_lock);
+                if (result == -1) {
+                    fprintf(stderr, "Failed to read GAME_OVER packet\n");
+                    exit(-1);
+                }
+                if (field) {
+                    free(field);
+                    field = nullptr;
+                }
+                puts("LOBBY STAGE");
+                state = STATE_LOBBY;
+                break;
+            default:
+                break;
+        }
     }
     pthread_exit(nullptr);
 }
@@ -60,14 +133,16 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    uint8_t id;
     char *response = get_bytes(&reader, 2);
     if (response[0] == JOIN_RESPONSE) {
         switch (response[1]) {
             case JOIN_RESPONSE_SUCCESS:
                 id = (uint8_t) get_bytes(&reader, 1)[0];
                 pthread_t thread;
-                pthread_create(&thread, nullptr, keep_alive_thread, &id);
+                if ((errno = pthread_create(&thread, nullptr, keep_alive_thread, &id))) {
+                    fprintf(stderr, "Failed to create keepalive thread: %s\n", strerror(errno));
+                    return -1;
+                }
                 puts("Connection established");
                 break;
             case JOIN_RESPONSE_BUSY:
@@ -80,6 +155,14 @@ int main(int argc, char **argv) {
                 break;
         }
     }
+
+    pthread_t thread;
+    if ((errno = pthread_create(&thread, nullptr, data_thread, &reader))) {
+        fprintf(stderr, "Failed to create data thread: %s\n", strerror(errno));
+        return -1;
+    }
+
+    puts("LOBBY STAGE");
 
     sf::Window window(sf::VideoMode(800, 600), "Bomberman");
     window.setVerticalSyncEnabled(true);
@@ -124,18 +207,21 @@ int main(int argc, char **argv) {
         }
         if (input != prev_input) {
             if (state == STATE_IN_PROGRESS) {
-                send_input(fd, id, input);
+                if (send_input(fd, id, input) == -1) {
+                    fail_send();
+                }
             } else if (state == STATE_LOBBY && input & INPUT_PLANT) {
-                send_ready(fd, id);
+                if (send_ready(fd, id) == -1) {
+                    fail_send();
+                }
             }
             prev_input = input;
         }
-        usleep((useconds_t) MAX((timestamp + 1000 / POLL_RATE - time(nullptr)) * 1000, 0));
+        usleep((useconds_t) MAX((timestamp + 1000 / FRAMERATE - time(nullptr)) * 1000, 0));
     }
 
     if (send_disconnect(fd, id) == -1) {
-        fprintf(stderr, "Failed to send message to server: %s\n", strerror(errno));
-        return -1;
+        fail_send();
     }
     close(fd);
 

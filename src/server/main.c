@@ -45,7 +45,8 @@ static void start_game(void) {
     state = STATE_IN_PROGRESS;
     pthread_t thread;
     if ((errno = pthread_create(&thread, NULL, loop_thread, NULL))) {
-        fprintf(stderr, "Failed to create thread: %s\n", strerror(errno));
+        fprintf(stderr, "Failed to create loop thread: %s\n", strerror(errno));
+        exit(-1);
     }
 }
 
@@ -248,7 +249,7 @@ int main(int argc, char **argv) {
         }
 
         if ((errno = pthread_create(&cl_thread, NULL, client_thread, &cl_fd))) {
-            fprintf(stderr, "Failed to create thread: %s\n", strerror(errno));
+            fprintf(stderr, "Failed to create client thread: %s\n", strerror(errno));
             close(cl_fd);
         }
     }
