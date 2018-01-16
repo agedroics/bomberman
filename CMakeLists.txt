@@ -17,8 +17,8 @@ set(COMMON ${COMMON_FOLDER}/include/protocol.h ${COMMON_FOLDER}/reader.c ${COMMO
 
 
 set(CLIENT_FOLDER src/client)
-set(CLIENT_INCLUDE ${CLIENT_FOLDER}/include/packet.h)
-set(CLIENT_SRC ${CLIENT_FOLDER}/main.cpp ${CLIENT_FOLDER}/packet.c)
+set(CLIENT_INCLUDE ${CLIENT_FOLDER}/include/packet.h ${CLIENT_FOLDER}/include/state.h)
+set(CLIENT_SRC ${CLIENT_FOLDER}/main.cpp ${CLIENT_FOLDER}/packet.c ${CLIENT_FOLDER}/state.c)
 
 add_executable(client ${COMMON} ${CLIENT_INCLUDE} ${CLIENT_SRC})
 
