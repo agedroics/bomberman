@@ -79,4 +79,6 @@ void map_upd_create(uint8_t x, uint8_t y, uint8_t block);
 
 void cleanup_objects(void);
 
+void remove_player_objects(player_t *player);
+
 #endif //BOMBERMAN_OBJECT_H

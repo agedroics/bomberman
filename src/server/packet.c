@@ -56,13 +56,7 @@ void send_game_start(uint8_t *field, uint8_t w, uint8_t h) {
     msg[offset++] = h;
     memcpy(msg + offset, field, w * h);
     offset += w * h;
-
-    // dynamite timer in s
-    msg[offset++] = DYNAMITE_TIMER;
-
-    // dynamite slide velocity in u/10s
-    msg[offset] = DYNAMITE_SLIDE_V * 10;
-
+    msg[offset] = DYNAMITE_TIMER;
     broadcast(msg, size);
     free(msg);
 }

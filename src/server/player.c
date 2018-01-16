@@ -1,7 +1,7 @@
 #include "player.h"
 
-static pthread_mutex_t players_lock = PTHREAD_MUTEX_INITIALIZER;
 static uint8_t max_id = 0;
+pthread_mutex_t players_lock = PTHREAD_MUTEX_INITIALIZER;
 player_t *players = NULL;
 uint8_t player_count = 0;
 
@@ -62,10 +62,28 @@ void set_players_not_ready(void) {
     }
 }
 
-void lock_players(void) {
-    pthread_mutex_lock(&players_lock);
+int are_players_nearby(uint8_t x, uint8_t y, uint8_t distance) {
+    int x1 = x - distance;
+    int x2 = x + 1 + distance;
+    int y1 = y - distance;
+    int y2 = y + 1 + distance;
+    player_t *it;
+    for (it = players; it; it = it->next) {
+        if (!it->x) {
+            continue;
+        }
+        if (((int) it->x == x && it->y >= y1 && it->y <= y2)
+            || ((int) it->y == y && it->x >= x1 && it->x <= x2)) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
-void unlock_players(void) {
-    pthread_mutex_unlock(&players_lock);
+int player_intersects(player_t *player, double x, double y) {
+    double px1 = player->x - (double) PLAYER_SIZE / 2;
+    double px2 = px1 + PLAYER_SIZE;
+    double py1 = player->y - (double) PLAYER_SIZE / 2;
+    double py2 = py1 + PLAYER_SIZE;
+    return px1 < x + 1 && px2 > x && py1 < y + 1 && py2 > y;
 }

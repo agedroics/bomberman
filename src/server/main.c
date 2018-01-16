@@ -22,19 +22,19 @@ static void *loop_thread(void *arg) {
         time_t timestamp = time(NULL);
         uint16_t timer = (uint16_t) MAX(TIMER - (cur_time - epoch) / 1000, 0);
 
-        lock_players();
+        pthread_mutex_lock(&players_lock);
         game_over = do_tick(timer, cur_time);
-        unlock_players();
+        pthread_mutex_unlock(&players_lock);
 
         cur_time += 1000 / TICK_RATE;
         usleep((useconds_t) MAX((timestamp + 1000 / TICK_RATE - time(NULL)) * 1000, 0));
     }
 
     puts("GAME OVER");
-    lock_players();
+    pthread_mutex_lock(&players_lock);
     send_game_over();
     reset_game();
-    unlock_players();
+    pthread_mutex_unlock(&players_lock);
     puts("LOBBY STAGE");
     state = STATE_LOBBY;
     pthread_exit(NULL);
@@ -66,7 +66,7 @@ static void disconnect_client(int fd, player_t *player) {
     if (!player) {
         close(fd);
     } else {
-        lock_players();
+        pthread_mutex_lock(&players_lock);
         printf("%s disconnected\n", player->name);
         remove_player(player);
         if (state == STATE_LOBBY) {
@@ -84,7 +84,7 @@ static void disconnect_client(int fd, player_t *player) {
         } else {
             remove_player_objects(player);
         }
-        unlock_players();
+        pthread_mutex_unlock(&players_lock);
     }
     pthread_exit(NULL);
 }
@@ -128,9 +128,9 @@ static void *client_thread(void *arg) {
                     disconnect_client(fd, player);
                 }
 
-                lock_players();
+                pthread_mutex_lock(&players_lock);
                 player = add_player(fd, data);
-                unlock_players();
+                pthread_mutex_unlock(&players_lock);
 
                 if (!player) {
                     response[1] = JOIN_RESPONSE_FULL;
@@ -147,9 +147,9 @@ static void *client_thread(void *arg) {
                 }
 
                 printf("%s connected\n", player->name);
-                lock_players();
+                pthread_mutex_lock(&players_lock);
                 send_lobby_status();
-                unlock_players();
+                pthread_mutex_unlock(&players_lock);
                 break;
             case READY:
                 data = get_bytes(&reader, 1);
@@ -160,21 +160,21 @@ static void *client_thread(void *arg) {
                     player->ready = (uint8_t) (player->ready ? 0 : 1);
                     printf("%s%s ready!\n", player->name, player->ready ? "" : " not");
 
-                    lock_players();
+                    pthread_mutex_lock(&players_lock);
                     send_lobby_status();
                     if (player_count > 1 && all_players_ready() && state == STATE_LOBBY) {
                         start_preparation();
                     }
-                    unlock_players();
+                    pthread_mutex_unlock(&players_lock);
                 } else if (state == STATE_PREPARING && !player->ready) {
                     player->ready = 1;
                     printf("%s ready!\n", player->name);
 
-                    lock_players();
+                    pthread_mutex_lock(&players_lock);
                     if (player_count > 1 && all_players_ready() && state == STATE_PREPARING) {
                         start_game();
                     }
-                    unlock_players();
+                    pthread_mutex_unlock(&players_lock);
                 }
                 break;
             case INPUT:

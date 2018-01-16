@@ -41,6 +41,7 @@ typedef struct player {
     int carrying_dyn;
 } player_t;
 
+extern pthread_mutex_t players_lock;
 extern player_t *players;
 extern uint8_t player_count;
 
@@ -65,12 +66,12 @@ player_t *add_player(int fd, char *name);
  */
 void remove_player(player_t *player);
 
-void lock_players(void);
-
-void unlock_players(void);
-
 int all_players_ready(void);
 
 void set_players_not_ready(void);
+
+int are_players_nearby(uint8_t x, uint8_t y, uint8_t distance);
+
+int player_intersects(player_t *player, double x, double y);
 
 #endif //BOMBERMAN_PLAYER_H

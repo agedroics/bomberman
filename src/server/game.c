@@ -12,24 +12,6 @@ static void field_set(int x, int y, uint8_t val) {
     field[y * h + x] = val;
 }
 
-static int are_players_nearby(uint8_t x, uint8_t y, uint8_t distance) {
-    int x1 = x - distance;
-    int x2 = x + 1 + distance;
-    int y1 = y - distance;
-    int y2 = y + 1 + distance;
-    player_t *it;
-    for (it = players; it; it = it->next) {
-        if (!it->x) {
-            continue;
-        }
-        if (((int) it->x == x && it->y >= y1 && it->y <= y2)
-            || ((int) it->y == y && it->x >= x1 && it->x <= x2)) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 static void init_field(int width, int height) {
     w = width;
     h = height;
@@ -104,36 +86,6 @@ void setup_game(void) {
         init_field(FIELD_WIDTH, FIELD_HEIGHT);
     }
     send_game_start(field, (uint8_t) w, (uint8_t) h);
-}
-
-void remove_player_objects(player_t *player) {
-    dyn_t *dyn;
-    for (dyn = dynamites; dyn; dyn = dyn->next) {
-        if (dyn->owner == player) {
-            dyn = dyn_destroy(dyn);
-            if (!dyn) {
-                break;
-            }
-        }
-    }
-
-    flame_t *flame;
-    for (flame = flames; flame; flame = flame->next) {
-        if (flame->owner == player) {
-            flame = flame_destroy(flame);
-            if (!flame) {
-                break;
-            }
-        }
-    }
-}
-
-static int player_intersects(player_t *player, double x, double y) {
-    double px1 = player->x - (double) PLAYER_SIZE / 2;
-    double px2 = px1 + PLAYER_SIZE;
-    double py1 = player->y - (double) PLAYER_SIZE / 2;
-    double py2 = py1 + PLAYER_SIZE;
-    return px1 < x + 1 && px2 > x && py1 < y + 1 && py2 > y;
 }
 
 static uint8_t random_pwrup(void) {

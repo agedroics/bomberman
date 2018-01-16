@@ -141,3 +141,25 @@ void cleanup_objects(void) {
     }
     map_upd_cnt = 0;
 }
+
+void remove_player_objects(player_t *player) {
+    dyn_t *dyn;
+    for (dyn = dynamites; dyn; dyn = dyn->next) {
+        if (dyn->owner == player) {
+            dyn = dyn_destroy(dyn);
+            if (!dyn) {
+                break;
+            }
+        }
+    }
+
+    flame_t *flame;
+    for (flame = flames; flame; flame = flame->next) {
+        if (flame->owner == player) {
+            flame = flame_destroy(flame);
+            if (!flame) {
+                break;
+            }
+        }
+    }
+}
