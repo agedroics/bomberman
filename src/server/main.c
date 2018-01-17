@@ -35,6 +35,7 @@ static void *loop_thread(void *arg) {
     send_game_over();
     reset_game();
     pthread_mutex_unlock(&players_lock);
+    send_lobby_status();
     puts("LOBBY STAGE");
     state = STATE_LOBBY;
     pthread_exit(NULL);
@@ -78,6 +79,7 @@ static void disconnect_client(int fd, player_t *player) {
         } else if (state == STATE_PREPARING) {
             if (player_count < 2) {
                 send_game_over();
+                send_lobby_status();
                 puts("LOBBY STAGE");
                 state = STATE_LOBBY;
             } else if (all_players_ready()) {

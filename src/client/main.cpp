@@ -1,11 +1,9 @@
-#include <SFML/Window.hpp>
 #include <arpa/inet.h>
+#include "draw.hpp"
 
 extern "C" {
     #include "packet.h"
 }
-
-#define FRAMERATE 60
 
 #define STATE_LOBBY 1
 #define STATE_IN_PROGRESS 2
@@ -129,8 +127,7 @@ int main(int argc, char **argv) {
     reader_init(&reader, fd);
 
     if (send_join_request(fd, argv[3]) == -1) {
-        fprintf(stderr, "Failed to send message to server: %s\n", strerror(errno));
-        return -1;
+        fail_send();
     }
 
     char *response = get_bytes(&reader, 2);
@@ -164,60 +161,50 @@ int main(int argc, char **argv) {
 
     puts("LOBBY STAGE");
 
-    sf::Window window(sf::VideoMode(800, 600), "Bomberman");
+    sf::ContextSettings settings;
+    settings.antialiasingLevel = 8;
+    GameWindow window(id, settings);
     window.setVerticalSyncEnabled(true);
     sf::Event event;
 
+    uint16_t input = 0;
     uint16_t prev_input = 0;
 
     while (window.isOpen()) {
         time_t timestamp = time(nullptr);
-        uint16_t input = 0;
         if (window.hasFocus()) {
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-                input |= INPUT_LEFT;
-            }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-                input |= INPUT_UP;
-            }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-                input |= INPUT_RIGHT;
-            }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-                input |= INPUT_DOWN;
-            }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
-                input |= INPUT_PLANT;
-            }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::F)) {
-                input |= INPUT_DETONATE;
-            }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
-                input |= INPUT_PICK_UP;
-            }
+            input = window.getInput();
         }
         while (window.pollEvent(event)) {
-            switch (event.type) {
-                case sf::Event::Closed:
-                    window.close();
-                    break;
-                default:
-                    break;
+            if (event.type == sf::Event::Closed) {
+                window.close();
             }
         }
-        if (input != prev_input) {
-            if (state == STATE_IN_PROGRESS) {
+        window.clear(sf::Color::White);
+        pthread_mutex_lock(&state_lock);
+        if (state == STATE_IN_PROGRESS) {
+            window.drawField();
+            if (input != prev_input) {
                 if (send_input(fd, id, input) == -1) {
                     fail_send();
                 }
-            } else if (state == STATE_LOBBY && input & INPUT_PLANT) {
-                if (send_ready(fd, id) == -1) {
+                prev_input = input;
+            }
+
+        } else if (state == STATE_LOBBY) {
+            window.drawLobby();
+            if (input != prev_input) {
+                if (input & INPUT_PLANT && send_ready(fd, id) == -1) {
                     fail_send();
                 }
+                if (input & INPUT_BONUS1) {
+                    window.controlsOpen = !window.controlsOpen;
+                }
+                prev_input = input;
             }
-            prev_input = input;
         }
-        usleep((useconds_t) MAX((timestamp + 1000 / FRAMERATE - time(nullptr)) * 1000, 0));
+        pthread_mutex_unlock(&state_lock);
+        window.display();
     }
 
     if (send_disconnect(fd, id) == -1) {

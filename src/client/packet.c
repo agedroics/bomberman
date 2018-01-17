@@ -25,6 +25,7 @@ int send_input(int fd, uint8_t id, uint16_t input) {
     char msg[4];
     msg[0] = INPUT;
     msg[1] = id;
+    input &= ~INPUT_BONUS1;
     memcpy(msg + 2, &input, 2);
     return write(fd, msg, 4) == -1 ? -1 : 0;
 }
