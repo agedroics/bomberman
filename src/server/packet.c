@@ -100,28 +100,26 @@ void send_objects(uint16_t timer) {
     size += 2;
 
     msg[size++] = dyn_cnt;
-    dyn_t *dyn;
-    for (dyn = dynamites; dyn; dyn = dyn->next) {
-        uint16_t x = (uint16_t) round(dyn->x * 10);
-        uint16_t y = (uint16_t) round(dyn->y * 10);
+    int i;
+    for (i = 0; i < dyn_cnt; ++i) {
+        uint16_t x = (uint16_t) round(dynamites[i].x * 10);
+        uint16_t y = (uint16_t) round(dynamites[i].y * 10);
         memcpy(msg + size, &x, 2);
         memcpy(msg + size + 2, &y, 2);
         size += 4;
     }
 
     msg[size++] = flame_cnt;
-    flame_t *flame;
-    for (flame = flames; flame; flame = flame->next) {
-        msg[size++] = flame->x;
-        msg[size++] = flame->y;
+    for (i = 0; i < flame_cnt; ++i) {
+        msg[size++] = flames[i].x;
+        msg[size++] = flames[i].y;
     }
 
     msg[size++] = pwrup_cnt;
-    pwrup_t *pwrup;
-    for (pwrup = pwrups; pwrup; pwrup = pwrup->next) {
-        msg[size++] = pwrup->x;
-        msg[size++] = pwrup->y;
-        msg[size++] = pwrup->type;
+    for (i = 0; i < pwrup_cnt; ++i) {
+        msg[size++] = pwrups[i].x;
+        msg[size++] = pwrups[i].y;
+        msg[size++] = pwrups[i].type;
     }
 
     msg[size++] = player_count;

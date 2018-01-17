@@ -16,21 +16,18 @@ typedef struct dyn {
     player_t *carrier;
     double x;
     double y;
-    uint8_t power;
     int remote_detonated;
     player_t *kicked_by;
     uint8_t slide_direction;
-    int hit_by_flame;
-    struct dyn *prev;
-    struct dyn *next;
+    uint8_t power;
 } dyn_t;
 
-extern dyn_t *dynamites;
+extern dyn_t dynamites[256];
 extern uint8_t dyn_cnt;
 
 void dyn_create(time_t cur_time, player_t *owner);
 
-dyn_t *dyn_destroy(dyn_t *dyn);
+void dyn_destroy(int i);
 
 typedef struct flame {
     time_t created;
@@ -38,32 +35,28 @@ typedef struct flame {
     uint8_t x;
     uint8_t y;
     uint8_t spawn_pwrup_type;
-    struct flame *prev;
-    struct flame *next;
 } flame_t;
 
-extern flame_t *flames;
+extern flame_t flames[256];
 extern uint8_t flame_cnt;
 
-void flame_create(time_t created, player_t *owner, uint8_t x, uint8_t y);
+int flame_create(time_t created, player_t *owner, uint8_t x, uint8_t y);
 
-flame_t *flame_destroy(flame_t *flame);
+void flame_destroy(int i);
 
 typedef struct pwrup {
     time_t created;
     uint8_t x;
     uint8_t y;
     uint8_t type;
-    struct pwrup *prev;
-    struct pwrup *next;
 } pwrup_t;
 
-extern pwrup_t *pwrups;
+extern pwrup_t pwrups[256];
 extern uint8_t pwrup_cnt;
 
 void pwrup_create(time_t cur_time, uint8_t x, uint8_t y, uint8_t type);
 
-pwrup_t *pwrup_destroy(pwrup_t *pwrup);
+void pwrup_destroy(int i);
 
 typedef struct map_upd {
     uint8_t x;

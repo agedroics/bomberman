@@ -8,8 +8,8 @@
 #define TIMER 200
 #define TICK_RATE 30
 #define FILL_SPEED 15
-#define FIELD_WIDTH 23
-#define FIELD_HEIGHT 23
+#define FIELD_WIDTH 19
+#define FIELD_HEIGHT 19
 
 void setup_game(void);
 

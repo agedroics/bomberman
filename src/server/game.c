@@ -16,14 +16,6 @@ static void init_field(int width, int height) {
     w = width;
     h = height;
 
-    // minimum field size n+2 x n+2
-    if (w < player_count + 2) {
-        w = player_count + (uint8_t) 2;
-    }
-    if (h < player_count + 2) {
-        h = player_count + (uint8_t) 2;
-    }
-
     // make sure field size is odd
     if (w % 2 == 0) {
         ++w;
@@ -109,10 +101,10 @@ static void spawn_flames(time_t cur_time, player_t *owner, uint8_t power, uint8_
     if (!power || field_get(x, y) == BLOCK_WALL) {
         return;
     }
-    flame_create(cur_time, owner, x, y);
+    int i = flame_create(cur_time, owner, x, y);
     if (field_get(x, y) == BLOCK_BOX) {
+        flames[i].spawn_pwrup_type = random_pwrup();
         map_upd_create(x, y, BLOCK_EMPTY);
-        flames->spawn_pwrup_type = random_pwrup();
     } else {
         if (direction == DIRECTION_LEFT) {
             --x;
@@ -127,12 +119,26 @@ static void spawn_flames(time_t cur_time, player_t *owner, uint8_t power, uint8_
     }
 }
 
+static void explode_dyn(int i, time_t cur_time) {
+    if (!(dynamites[i].owner->active_pwrups & ACTIVE_PWRUP_REMOTE) || dynamites[i].remote_detonated) {
+        ++dynamites[i].owner->count;
+    }
+    uint8_t x = (uint8_t) dynamites[i].x;
+    uint8_t y = (uint8_t) dynamites[i].y;
+    flame_create(cur_time, dynamites[i].owner, x, y);
+    spawn_flames(cur_time, dynamites[i].owner, dynamites[i].power, x - (uint8_t) 1, y, DIRECTION_LEFT);
+    spawn_flames(cur_time, dynamites[i].owner, dynamites[i].power, x, y - (uint8_t) 1, DIRECTION_UP);
+    spawn_flames(cur_time, dynamites[i].owner, dynamites[i].power, x + (uint8_t) 1, y, DIRECTION_RIGHT);
+    spawn_flames(cur_time, dynamites[i].owner, dynamites[i].power, x, y + (uint8_t) 1, DIRECTION_DOWN);
+}
+
 static time_t last_fill;
 static int fill_x = 1;
 static int fill_y = 1;
 static uint8_t fill_direction = DIRECTION_RIGHT;
 
 int do_tick(uint16_t timer, time_t cur_time) {
+    int i;
     if (!timer && (!last_fill || cur_time - last_fill >= 1000 / FILL_SPEED)) {
         last_fill = cur_time;
         field_set(fill_x, fill_y, BLOCK_WALL);
@@ -146,16 +152,14 @@ int do_tick(uint16_t timer, time_t cur_time) {
             }
         }
 
-        dyn_t *dyn;
-        for (dyn = dynamites; dyn; dyn = dyn->next) {
-            if (dyn->x - 1.5 < fill_x && dyn->x + .5 > fill_x && dyn->y - 1.5 < fill_y && dyn->y + .5 > fill_y) {
-                if (!(dyn->owner->active_pwrups & ACTIVE_PWRUP_REMOTE) || dyn->remote_detonated) {
-                    ++dyn->owner->count;
+        for (i = 0; i < dyn_cnt; ++i) {
+            if (dynamites[i].x - 1.5 < fill_x && dynamites[i].x + .5 > fill_x
+                && dynamites[i].y - 1.5 < fill_y && dynamites[i].y + .5 > fill_y) {
+
+                if (!(dynamites[i].owner->active_pwrups & ACTIVE_PWRUP_REMOTE) || dynamites[i].remote_detonated) {
+                    ++dynamites[i].owner->count;
                 }
-                dyn = dyn_destroy(dyn);
-                if (!dyn) {
-                    break;
-                }
+                dyn_destroy(i--);
             }
         }
 
@@ -197,96 +201,84 @@ int do_tick(uint16_t timer, time_t cur_time) {
         }
     }
 
-    dyn_t *dyn;
-    for (dyn = dynamites; dyn; dyn = dyn->next) {
-        if (cur_time - dyn->created >= DYNAMITE_TIMER * 1000 || (dyn->remote_detonated && dyn->owner->detonate_pressed) || dyn->hit_by_flame) {
-            if (!(dyn->owner->active_pwrups & ACTIVE_PWRUP_REMOTE) || dyn->remote_detonated) {
-                ++dyn->owner->count;
-            }
-            uint8_t x = (uint8_t) dyn->x;
-            uint8_t y = (uint8_t) dyn->y;
-            flame_create(cur_time, dyn->owner, x, y);
-            spawn_flames(cur_time, dyn->owner, dyn->power, x - (uint8_t) 1, y, DIRECTION_LEFT);
-            spawn_flames(cur_time, dyn->owner, dyn->power, x, y - (uint8_t) 1, DIRECTION_UP);
-            spawn_flames(cur_time, dyn->owner, dyn->power, x + (uint8_t) 1, y, DIRECTION_RIGHT);
-            spawn_flames(cur_time, dyn->owner, dyn->power, x, y + (uint8_t) 1, DIRECTION_DOWN);
-            dyn = dyn_destroy(dyn);
-        } else if (dyn->carrier) {
-            if (dyn->carrier->plant_pressed || dyn->carrier->dead) {
-                dyn->x = (int) dyn->carrier->x + .5;
-                dyn->y = (int) dyn->carrier->y + .5;
-                dyn->carrier->carrying_dyn = 0;
-                dyn->carrier = NULL;
+    for (i = 0; i < dyn_cnt; ++i) {
+        if (cur_time - dynamites[i].created >= DYNAMITE_TIMER * 1000
+            || (dynamites[i].remote_detonated && dynamites[i].owner->detonate_pressed)) {
+
+            explode_dyn(i, cur_time);
+            dyn_destroy(i--);
+        } else if (dynamites[i].carrier) {
+            if (dynamites[i].carrier->plant_pressed || dynamites[i].carrier->dead) {
+                dynamites[i].x = (int) dynamites[i].carrier->x + .5;
+                dynamites[i].y = (int) dynamites[i].carrier->y + .5;
+                dynamites[i].carrier->carrying_dyn = 0;
+                dynamites[i].carrier = NULL;
             } else {
-                dyn->x = dyn->carrier->x;
-                dyn->y = dyn->carrier->y;
+                dynamites[i].x = dynamites[i].carrier->x;
+                dynamites[i].y = dynamites[i].carrier->y;
             }
-        } else if (dyn->remote_detonated && dyn->owner->dead) {
-            if (dyn->carrier) {
-                dyn->carrier->carrying_dyn = 0;
+        } else if (dynamites[i].remote_detonated && dynamites[i].owner->dead) {
+            if (dynamites[i].carrier) {
+                dynamites[i].carrier->carrying_dyn = 0;
             }
-            dyn = dyn_destroy(dyn);
+            dyn_destroy(i--);
         } else {
-            if (dyn->kicked_by) {
-                if (dyn->slide_direction == DIRECTION_LEFT) {
-                    int x = (int) dyn->x;
-                    dyn->x -= (double) DYNAMITE_SLIDE_V / TICK_RATE;
-                    if (field_get(x - 1, (int) dyn->y) != BLOCK_EMPTY && dyn->x - .5 <= x) {
-                        dyn->x = x + .5;
-                        dyn->kicked_by = NULL;
+            if (dynamites[i].kicked_by) {
+                if (dynamites[i].slide_direction == DIRECTION_LEFT) {
+                    int x = (int) dynamites[i].x;
+                    dynamites[i].x -= (double) DYNAMITE_SLIDE_V / TICK_RATE;
+                    if (field_get(x - 1, (int) dynamites[i].y) != BLOCK_EMPTY && dynamites[i].x - .5 <= x) {
+                        dynamites[i].x = x + .5;
+                        dynamites[i].kicked_by = NULL;
                     }
-                } else if (dyn->slide_direction == DIRECTION_UP) {
-                    int y = (int) dyn->y;
-                    dyn->y -= (double) DYNAMITE_SLIDE_V / TICK_RATE;
-                    if (field_get((int) dyn->x, y - 1) != BLOCK_EMPTY && dyn->y - .5 <= y) {
-                        dyn->y = y + .5;
-                        dyn->kicked_by = NULL;
+                } else if (dynamites[i].slide_direction == DIRECTION_UP) {
+                    int y = (int) dynamites[i].y;
+                    dynamites[i].y -= (double) DYNAMITE_SLIDE_V / TICK_RATE;
+                    if (field_get((int) dynamites[i].x, y - 1) != BLOCK_EMPTY && dynamites[i].y - .5 <= y) {
+                        dynamites[i].y = y + .5;
+                        dynamites[i].kicked_by = NULL;
                     }
-                } else if (dyn->slide_direction == DIRECTION_RIGHT) {
-                    int x = (int) dyn->x + 1;
-                    dyn->x += (double) DYNAMITE_SLIDE_V / TICK_RATE;
-                    if (field_get(x, (int) dyn->y) != BLOCK_EMPTY && dyn->x + .5 >= x) {
-                        dyn->x = x - .5;
-                        dyn->kicked_by = NULL;
+                } else if (dynamites[i].slide_direction == DIRECTION_RIGHT) {
+                    int x = (int) dynamites[i].x + 1;
+                    dynamites[i].x += (double) DYNAMITE_SLIDE_V / TICK_RATE;
+                    if (field_get(x, (int) dynamites[i].y) != BLOCK_EMPTY && dynamites[i].x + .5 >= x) {
+                        dynamites[i].x = x - .5;
+                        dynamites[i].kicked_by = NULL;
                     }
-                } else if (dyn->slide_direction == DIRECTION_DOWN) {
-                    int y = (int) dyn->y + 1;
-                    dyn->y += (double) DYNAMITE_SLIDE_V / TICK_RATE;
-                    if (field_get((int) dyn->x, y) != BLOCK_EMPTY && dyn->y + .5 >= y) {
-                        dyn->y = y - .5;
-                        dyn->kicked_by = NULL;
+                } else if (dynamites[i].slide_direction == DIRECTION_DOWN) {
+                    int y = (int) dynamites[i].y + 1;
+                    dynamites[i].y += (double) DYNAMITE_SLIDE_V / TICK_RATE;
+                    if (field_get((int) dynamites[i].x, y) != BLOCK_EMPTY && dynamites[i].y + .5 >= y) {
+                        dynamites[i].y = y - .5;
+                        dynamites[i].kicked_by = NULL;
                     }
                 }
             }
             player_t *it;
             for (it = players; it; it = it->next) {
-                if (!it->dead && player_intersects(it, dyn->x, dyn->y)) {
-                    if (it->active_pwrups & ACTIVE_PWRUP_KICK && dyn->kicked_by != it) {
+                if (!it->dead && player_intersects(it, dynamites[i].x, dynamites[i].y)) {
+                    if (it->active_pwrups & ACTIVE_PWRUP_KICK && dynamites[i].kicked_by != it
+                        && it->input & (INPUT_LEFT | INPUT_UP | INPUT_RIGHT | INPUT_DOWN)) {
+
+                        dynamites[i].kicked_by = it;
                         if (it->input & INPUT_LEFT) {
-                            dyn->kicked_by = it;
-                            dyn->slide_direction = DIRECTION_LEFT;
+                            dynamites[i].slide_direction = DIRECTION_LEFT;
                         } else if (it->input & INPUT_UP) {
-                            dyn->kicked_by = it;
-                            dyn->slide_direction = DIRECTION_UP;
+                            dynamites[i].slide_direction = DIRECTION_UP;
                         } else if (it->input & INPUT_RIGHT) {
-                            dyn->kicked_by = it;
-                            dyn->slide_direction = DIRECTION_RIGHT;
+                            dynamites[i].slide_direction = DIRECTION_RIGHT;
                         } else if (it->input & INPUT_DOWN) {
-                            dyn->kicked_by = it;
-                            dyn->slide_direction = DIRECTION_DOWN;
+                            dynamites[i].slide_direction = DIRECTION_DOWN;
                         }
                     } else if (it->pick_up_pressed && !it->carrying_dyn) {
-                        dyn->kicked_by = NULL;
-                        dyn->carrier = it;
+                        dynamites[i].kicked_by = NULL;
+                        dynamites[i].carrier = it;
                         it->carrying_dyn = 1;
                     }
-                } else if (it == dyn->kicked_by) {
-                    dyn->kicked_by = NULL;
+                } else if (it == dynamites[i].kicked_by) {
+                    dynamites[i].kicked_by = NULL;
                 }
             }
-        }
-        if (!dyn) {
-            break;
         }
     }
 
@@ -305,12 +297,17 @@ int do_tick(uint16_t timer, time_t cur_time) {
 
         double actual_speed = it->speed;
         uint16_t directional_input = it->input & (uint16_t) (INPUT_LEFT | INPUT_UP | INPUT_RIGHT | INPUT_DOWN);
-        if (directional_input == (INPUT_DOWN | INPUT_LEFT | INPUT_UP) || directional_input == (INPUT_UP | INPUT_RIGHT | INPUT_DOWN)) {
+        if (directional_input == (INPUT_DOWN | INPUT_LEFT | INPUT_UP)
+            || directional_input == (INPUT_UP | INPUT_RIGHT | INPUT_DOWN)) {
+
             it->input &= ~(INPUT_DOWN | INPUT_UP);
-        } else if (directional_input == (INPUT_LEFT | INPUT_UP | INPUT_RIGHT) || directional_input == (INPUT_RIGHT | INPUT_DOWN | INPUT_LEFT)) {
+        } else if (directional_input == (INPUT_LEFT | INPUT_UP | INPUT_RIGHT)
+                   || directional_input == (INPUT_RIGHT | INPUT_DOWN | INPUT_LEFT)) {
+
             it->input &= ~(INPUT_LEFT | INPUT_RIGHT);
         } else if (directional_input == (INPUT_LEFT | INPUT_UP) || directional_input == (INPUT_UP | INPUT_RIGHT)
             || directional_input == (INPUT_RIGHT | INPUT_DOWN) || directional_input == (INPUT_DOWN | INPUT_LEFT)) {
+
             actual_speed *= sqrt(2) / 2;
         } else if ((directional_input & (INPUT_LEFT | INPUT_RIGHT)) || (directional_input & (INPUT_UP | INPUT_DOWN))) {
             it->input &= ~(INPUT_LEFT | INPUT_UP | INPUT_RIGHT | INPUT_DOWN);
@@ -370,55 +367,50 @@ int do_tick(uint16_t timer, time_t cur_time) {
         return 1;
     }
 
-    flame_t *flame;
-    for (flame = flames; flame; flame = flame->next) {
-        if (cur_time - flame->created >= FLAME_TIMEOUT * 1000) {
-            if (flame->spawn_pwrup_type != UINT8_MAX) {
-                pwrup_create(cur_time, flame->x, flame->y, flame->spawn_pwrup_type);
+    for (i = 0; i < flame_cnt; ++i) {
+        if (cur_time - flames[i].created >= FLAME_TIMEOUT * 1000) {
+            if (flames[i].spawn_pwrup_type != UINT8_MAX) {
+                pwrup_create(cur_time, flames[i].x, flames[i].y, flames[i].spawn_pwrup_type);
             }
-            flame = flame_destroy(flame);
-        } else if (field_get(flame->x, flame->y) == BLOCK_WALL) {
-            flame = flame_destroy(flame);
+            flame_destroy(i--);
+        } else if (field_get(flames[i].x, flames[i].y) == BLOCK_WALL) {
+            flame_destroy(i--);
         } else {
             for (it = players; it; it = it->next) {
-                if (!it->dead && player_intersects(it, flame->x, flame->y)) {
+                if (!it->dead && player_intersects(it, flames[i].x, flames[i].y)) {
                     it->dead = 1;
-                    if (it != flame->owner) {
-                        ++flame->owner->frags;
-                        printf("%s was killed by %s\n", it->name, flame->owner->name);
+                    if (it != flames[i].owner) {
+                        ++flames[i].owner->frags;
+                        printf("%s was killed by %s\n", it->name, flames[i].owner->name);
                     } else {
                         printf("%s committed suicide\n", it->name);
                     }
                 }
             }
-            for (dyn = dynamites; dyn; dyn = dyn->next) {
-                if (dyn->x - 1.5 < flame->x && dyn->x + .5 > flame->x && dyn->y - 1.5 < flame->y && dyn->y + .5 > flame->y) {
-                    dyn->hit_by_flame = 1;
+            int j;
+            for (j = 0; j < dyn_cnt; ++j) {
+                if (dynamites[j].x - 1.5 < flames[i].x && dynamites[j].x + .5 > flames[i].x
+                    && dynamites[j].y - 1.5 < flames[i].y && dynamites[j].y + .5 > flames[i].y) {
+
+                    explode_dyn(j, cur_time);
+                    dyn_destroy(j--);
                 }
             }
-            pwrup_t *pwrup;
-            for (pwrup = pwrups; pwrup; pwrup = pwrup->next) {
-                if (flame->x == pwrup->x && flame->y == pwrup->y) {
-                    pwrup = pwrup_destroy(pwrup);
-                    if (!pwrup) {
-                        break;
-                    }
+            for (j = 0; j < pwrup_cnt; ++j) {
+                if (flames[i].x == pwrups[j].x && flames[i].y == pwrups[j].y) {
+                    pwrup_destroy(j--);
                 }
             }
-        }
-        if (!flame) {
-            break;
         }
     }
 
-    pwrup_t *pwrup;
-    for (pwrup = pwrups; pwrup; pwrup = pwrup->next) {
-        if (cur_time - pwrup->created >= PWRUP_TIMEOUT * 1000 || field_get(pwrup->x, pwrup->y) == BLOCK_WALL) {
-            pwrup = pwrup_destroy(pwrup);
+    for (i = 0; i < pwrup_cnt; ++i) {
+        if (cur_time - pwrups[i].created >= PWRUP_TIMEOUT * 1000 || field_get(pwrups[i].x, pwrups[i].y) == BLOCK_WALL) {
+            pwrup_destroy(i--);
         } else {
             for (it = players; it; it = it->next) {
-                if (!it->dead && player_intersects(it, pwrup->x, pwrup->y)) {
-                    switch (pwrup->type) {
+                if (!it->dead && player_intersects(it, pwrups[i].x, pwrups[i].y)) {
+                    switch (pwrups[i].type) {
                         case PWRUP_POWER:
                             if (it->power < MAX_POWER) {
                                 ++it->power;
@@ -446,13 +438,10 @@ int do_tick(uint16_t timer, time_t cur_time) {
                         default:
                             break;
                     }
-                    pwrup = pwrup_destroy(pwrup);
+                    pwrup_destroy(i--);
                     break;
                 }
             }
-        }
-        if (!pwrup) {
-            break;
         }
     }
 

@@ -1,10 +1,13 @@
 #include "object.h"
 
-dyn_t *dynamites;
+dyn_t dynamites[256];
 uint8_t dyn_cnt;
 
 void dyn_create(time_t cur_time, player_t *owner) {
-    dyn_t *dyn = malloc(sizeof(dyn_t));
+    if (dyn_cnt == 256) {
+        return;
+    }
+    dyn_t *dyn = dynamites + dyn_cnt;
     dyn->created = cur_time;
     dyn->owner = owner;
     dyn->carrier = NULL;
@@ -13,96 +16,53 @@ void dyn_create(time_t cur_time, player_t *owner) {
     dyn->power = owner->power;
     dyn->remote_detonated = owner->active_pwrups & ACTIVE_PWRUP_REMOTE;
     dyn->kicked_by = NULL;
-    dyn->hit_by_flame = 0;
-    dyn->prev = NULL;
-    dyn->next = dynamites;
-    dynamites = dyn;
     ++dyn_cnt;
 }
 
-dyn_t *dyn_destroy(dyn_t *dyn) {
-    dyn_t *next = dyn->next;
-    if (dyn->prev) {
-        dyn->prev->next = next;
-    }
-    if (next) {
-        next->prev = dyn->prev;
-    }
-    if (dynamites == dyn) {
-        dynamites = next;
-    }
-    free(dyn);
+void dyn_destroy(int i) {
+    dynamites[i] = dynamites[dyn_cnt - 1];
     --dyn_cnt;
-    return next;
 }
 
-flame_t *flames;
+flame_t flames[256];
 uint8_t flame_cnt;
 
-void flame_create(time_t created, player_t *owner, uint8_t x, uint8_t y) {
-    flame_t *flame = malloc(sizeof(flame_t));
+int flame_create(time_t created, player_t *owner, uint8_t x, uint8_t y) {
+    if (flame_cnt == 256) {
+        return 255;
+    }
+    flame_t *flame = flames + flame_cnt;
     flame->created = created;
     flame->owner = owner;
     flame->x = x;
     flame->y = y;
     flame->spawn_pwrup_type = UINT8_MAX;
-    flame->prev = NULL;
-    flame->next = flames;
-    if (flames) {
-        flames->prev = flame;
-    }
-    flames = flame;
-    ++flame_cnt;
+    return flame_cnt++;
 }
 
-flame_t *flame_destroy(flame_t *flame) {
-    flame_t *next = flame->next;
-    if (flame->prev) {
-        flame->prev->next = next;
-    }
-    if (next) {
-        next->prev = flame->prev;
-    }
-    if (flames == flame) {
-        flames = next;
-    }
-    free(flame);
+void flame_destroy(int i) {
+    flames[i] = flames[flame_cnt - 1];
     --flame_cnt;
-    return next;
 }
 
-pwrup_t *pwrups;
+pwrup_t pwrups[256];
 uint8_t pwrup_cnt;
 
 void pwrup_create(time_t cur_time, uint8_t x, uint8_t y, uint8_t type) {
-    pwrup_t *pwrup = malloc(sizeof(pwrup_t));
+    if (pwrup_cnt == 256) {
+        return;
+    }
+    pwrup_t *pwrup = pwrups + pwrup_cnt;
     pwrup->created = cur_time;
     pwrup->x = x;
     pwrup->y = y;
     pwrup->type = type;
-    pwrup->prev = NULL;
-    pwrup->next = pwrups;
-    if (pwrups) {
-        pwrups->prev = pwrup;
-    }
-    pwrups = pwrup;
     ++pwrup_cnt;
 }
 
-pwrup_t *pwrup_destroy(pwrup_t *pwrup) {
-    pwrup_t *next = pwrup->next;
-    if (pwrup->prev) {
-        pwrup->prev->next = next;
-    }
-    if (next) {
-        next->prev = pwrup->prev;
-    }
-    if (pwrups == pwrup) {
-        pwrups = next;
-    }
-    free(pwrup);
+void pwrup_destroy(int i) {
+    pwrups[i] = pwrups[pwrup_cnt - 1];
     --pwrup_cnt;
-    return next;
 }
 
 map_upd_t *map_updates;
@@ -119,19 +79,8 @@ void map_upd_create(uint8_t x, uint8_t y, uint8_t block) {
 }
 
 void cleanup_objects(void) {
-    while (dynamites) {
-        dyn_destroy(dynamites);
-    }
     dyn_cnt = 0;
-
-    while (flames) {
-        flame_destroy(flames);
-    }
     flame_cnt = 0;
-
-    while (pwrups) {
-        pwrup_destroy(pwrups);
-    }
     pwrup_cnt = 0;
 
     map_upd_t *map_upd;
@@ -143,23 +92,16 @@ void cleanup_objects(void) {
 }
 
 void remove_player_objects(player_t *player) {
-    dyn_t *dyn;
-    for (dyn = dynamites; dyn; dyn = dyn->next) {
-        if (dyn->owner == player) {
-            dyn = dyn_destroy(dyn);
-            if (!dyn) {
-                break;
-            }
+    int i;
+    for (i = 0; i < dyn_cnt; ++i) {
+        if (dynamites[i].owner == player) {
+            dyn_destroy(i--);
         }
     }
 
-    flame_t *flame;
-    for (flame = flames; flame; flame = flame->next) {
-        if (flame->owner == player) {
-            flame = flame_destroy(flame);
-            if (!flame) {
-                break;
-            }
+    for (i = 0; i < flame_cnt; ++i) {
+        if (flames[i].owner == player) {
+            flame_destroy(i--);
         }
     }
 }
