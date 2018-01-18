@@ -1,4 +1,5 @@
-#include "packet.h"
+#include <state.h>
+#include <packet.h>
 
 int send_join_request(int fd, char *nickname) {
     char msg[24];
@@ -51,8 +52,8 @@ int parse_lobby_status(reader_t *reader) {
         }
         auto id = (uint8_t) data[0];
         players[i].id = id;
-        strncpy(player_names[id], data + 1, 23);
-        player_names[id][23] = 0;
+        strncpy(player_infos[id].name, data + 1, 23);
+        player_infos[id].name[23] = 0;
         players[i].ready = (uint8_t) data[24];
     }
     return 0;
@@ -68,8 +69,10 @@ static int parse_field_data(reader_t *reader) {
     size_t total_bytes = field_width * field_height;
     if (field) {
         free(field);
+        free(flame_map);
     }
     field = malloc(total_bytes);
+    flame_map = malloc(total_bytes * sizeof(int));
     size_t read_bytes = 0;
     while (read_bytes < total_bytes) {
         size_t read_size = MIN(total_bytes - read_bytes, 4096);
@@ -97,8 +100,8 @@ int parse_game_start(reader_t *reader) {
         }
         auto id = (uint8_t) data[0];
         players[i].id = id;
-        strncpy(player_names[id], data + 1, 23);
-        player_names[id][23] = 0;
+        strncpy(player_infos[id].name, data + 1, 23);
+        player_infos[id].name[23] = 0;
         memcpy(&players[i].x, data + 24, 2);
         memcpy(&players[i].y, data + 26, 2);
         players[i].direction = (uint8_t) data[28];
@@ -153,6 +156,7 @@ static int parse_flame_data(reader_t *reader) {
         return -1;
     }
     flame_cnt = (uint8_t) *data;
+    memset(flame_map, 0, field_width * field_height * sizeof(int));
     int i;
     for (i = 0; i < flame_cnt; ++i) {
         data = get_bytes(reader, 2);
@@ -161,6 +165,7 @@ static int parse_flame_data(reader_t *reader) {
         }
         flames[i].x = (uint8_t) data[0];
         flames[i].y = (uint8_t) data[1];
+        flame_map_set(flames[i].x, flames[i].y, 1);
     }
     return 0;
 }

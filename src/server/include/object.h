@@ -2,22 +2,24 @@
 #define BOMBERMAN_OBJECT_H
 
 #include <math.h>
-#include "player.h"
-#include "protocol.h"
+#include <player.h>
+#include <protocol.h>
+#include <utils.h>
 
 #define DYNAMITE_TIMER 3
-#define DYNAMITE_SLIDE_V 6
-#define FLAME_TIMEOUT 0.5
+#define DYNAMITE_SLIDE_V 10
+#define FLAME_TIMEOUT 1
 #define PWRUP_TIMEOUT 20
 
-typedef struct dyn {
-    time_t created;
+typedef struct {
+    millis_t created;
     player_t *owner;
     player_t *carrier;
     double x;
     double y;
     int remote_detonated;
-    player_t *kicked_by;
+    int is_sliding;
+    player_t *last_touched_by;
     uint8_t slide_direction;
     uint8_t power;
 } dyn_t;
@@ -25,12 +27,12 @@ typedef struct dyn {
 extern dyn_t dynamites[256];
 extern uint8_t dyn_cnt;
 
-void dyn_create(time_t cur_time, player_t *owner);
+void dyn_create(millis_t cur_time, player_t *owner);
 
 void dyn_destroy(int i);
 
-typedef struct flame {
-    time_t created;
+typedef struct {
+    millis_t created;
     player_t *owner;
     uint8_t x;
     uint8_t y;
@@ -40,12 +42,12 @@ typedef struct flame {
 extern flame_t flames[256];
 extern uint8_t flame_cnt;
 
-int flame_create(time_t created, player_t *owner, uint8_t x, uint8_t y);
+int flame_create(millis_t cur_time, player_t *owner, uint8_t x, uint8_t y);
 
 void flame_destroy(int i);
 
-typedef struct pwrup {
-    time_t created;
+typedef struct {
+    millis_t created;
     uint8_t x;
     uint8_t y;
     uint8_t type;
@@ -54,7 +56,7 @@ typedef struct pwrup {
 extern pwrup_t pwrups[256];
 extern uint8_t pwrup_cnt;
 
-void pwrup_create(time_t cur_time, uint8_t x, uint8_t y, uint8_t type);
+void pwrup_create(millis_t cur_time, uint8_t x, uint8_t y, uint8_t type);
 
 void pwrup_destroy(int i);
 

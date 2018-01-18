@@ -1,8 +1,8 @@
 #include <arpa/inet.h>
-#include "draw.hpp"
+#include <draw.hpp>
 
 extern "C" {
-    #include "packet.h"
+    #include <packet.h>
 }
 
 #define STATE_LOBBY 1
@@ -171,19 +171,21 @@ int main(int argc, char **argv) {
     uint16_t prev_input = 0;
 
     while (window.isOpen()) {
-        time_t timestamp = time(nullptr);
         if (window.hasFocus()) {
             input = window.getInput();
         }
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) {
                 window.close();
+            } else if (event.type == sf::Event::Resized) {
+                sf::FloatRect visibleArea(0, 0, event.size.width, event.size.height);
+                window.setView(sf::View(visibleArea));
             }
         }
         window.clear(sf::Color::White);
         pthread_mutex_lock(&state_lock);
         if (state == STATE_IN_PROGRESS) {
-            window.drawField();
+            window.drawGame();
             if (input != prev_input) {
                 if (send_input(fd, id, input) == -1) {
                     fail_send();

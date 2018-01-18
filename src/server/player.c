@@ -1,4 +1,4 @@
-#include "player.h"
+#include <player.h>
 
 static uint8_t max_id = 0;
 pthread_mutex_t players_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -85,5 +85,5 @@ int player_intersects(player_t *player, double x, double y) {
     double px2 = px1 + PLAYER_SIZE;
     double py1 = player->y - (double) PLAYER_SIZE / 2;
     double py2 = py1 + PLAYER_SIZE;
-    return px1 < x + 1 && px2 > x && py1 < y + 1 && py2 > y;
+    return px1 < x + 0.99 && px2 > x + 0.01 && py1 < y + 0.99 && py2 > y + 0.01;
 }

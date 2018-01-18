@@ -1,9 +1,7 @@
 #include <signal.h>
-#include <time.h>
-#include "utils.h"
-#include "reader.h"
-#include "setup.h"
-#include "game.h"
+#include <reader.h>
+#include <setup.h>
+#include <game.h>
 
 #define STATE_LOBBY 1
 #define STATE_PREPARING 2
@@ -14,12 +12,12 @@ static int state = STATE_LOBBY;
 static void *loop_thread(void *arg) {
     signal(SIGPIPE, SIG_IGN);
 
-    time_t epoch = time(NULL);
-    time_t cur_time = epoch;
+    millis_t epoch = get_milliseconds();
+    millis_t cur_time = epoch;
     int game_over = 0;
 
     while (!game_over) {
-        time_t timestamp = time(NULL);
+        millis_t timestamp = get_milliseconds();
         uint16_t timer = (uint16_t) MAX(TIMER - (cur_time - epoch) / 1000, 0);
 
         pthread_mutex_lock(&players_lock);
@@ -27,13 +25,12 @@ static void *loop_thread(void *arg) {
         pthread_mutex_unlock(&players_lock);
 
         cur_time += 1000 / TICK_RATE;
-        usleep((useconds_t) MAX((timestamp + 1000 / TICK_RATE - time(NULL)) * 1000, 0));
+        usleep((useconds_t) MAX((timestamp + 1000 / TICK_RATE - get_milliseconds()) * 1000, 0));
     }
 
     puts("GAME OVER");
     pthread_mutex_lock(&players_lock);
     send_game_over();
-    reset_game();
     pthread_mutex_unlock(&players_lock);
     send_lobby_status();
     puts("LOBBY STAGE");
@@ -42,6 +39,7 @@ static void *loop_thread(void *arg) {
 }
 
 static void start_game(void) {
+    set_players_not_ready();
     puts("STARTING GAME");
     state = STATE_IN_PROGRESS;
     pthread_t thread;
@@ -221,7 +219,7 @@ int main(int argc, char **argv) {
     struct sockaddr_in addr;
 
     signal(SIGPIPE, SIG_IGN);
-    srand((unsigned) time(NULL));
+    srand((unsigned) get_milliseconds());
 
     if (read_args(argc, argv, &addr) == -1) {
         return -1;

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <utils.h>
 
 extern pthread_mutex_t state_lock;
 
@@ -18,7 +19,7 @@ uint8_t field_get(int x, int y);
 
 void field_set(int x, int y, uint8_t block_type);
 
-typedef struct player {
+typedef struct {
     uint8_t id;
     uint8_t ready;
     uint16_t x;
@@ -31,7 +32,14 @@ typedef struct player {
     uint8_t dead;
 } player_t;
 
-extern char player_names[256][24];
+typedef struct {
+    char name[24];
+    uint16_t last_x;
+    uint16_t last_y;
+    millis_t movement_last_detected;
+} player_info;
+
+extern player_info player_infos[256];
 extern player_t players[256];
 extern uint8_t player_cnt;
 
@@ -44,15 +52,20 @@ extern dyn_t dynamites[256];
 extern uint8_t dyn_cnt;
 extern uint8_t dyn_timer;
 
-typedef struct flame {
+typedef struct {
     uint8_t x;
     uint8_t y;
 } flame_t;
 
 extern flame_t flames[256];
 extern uint8_t flame_cnt;
+extern int *flame_map;
 
-typedef struct pwrup {
+int flame_map_get(int x, int y);
+
+void flame_map_set(int x, int y, int val);
+
+typedef struct {
     uint8_t x;
     uint8_t y;
     uint8_t type;

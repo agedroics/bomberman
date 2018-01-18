@@ -6,10 +6,10 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <pthread.h>
-#include "protocol.h"
-#include "state.h"
-#include "reader.h"
-#include "utils.h"
+#include <protocol.h>
+#include <state.h>
+#include <reader.h>
+#include <utils.h>
 
 /**
  * @return error ? -1 : 0

@@ -1,4 +1,5 @@
-#include "game.h"
+#include <object.h>
+#include <game.h>
 
 static uint8_t *field;
 static int w;
@@ -24,7 +25,7 @@ static void init_field(int width, int height) {
         ++h;
     }
 
-    field = malloc((size_t) w * h);
+    field = calloc((size_t) w * h, 1);
 
     // set field top and bottom walls
     uint8_t x, y;
@@ -73,13 +74,6 @@ static void init_field(int width, int height) {
     }
 }
 
-void setup_game(void) {
-    if (!field) {
-        init_field(FIELD_WIDTH, FIELD_HEIGHT);
-    }
-    send_game_start(field, (uint8_t) w, (uint8_t) h);
-}
-
 static uint8_t random_pwrup(void) {
     int rnd = rand() % 20;
     if (rnd <= 1) {
@@ -97,13 +91,14 @@ static uint8_t random_pwrup(void) {
     }
 }
 
-static void spawn_flames(time_t cur_time, player_t *owner, uint8_t power, uint8_t x, uint8_t y, uint8_t direction) {
+static void spawn_flames(millis_t cur_time, player_t *owner, uint8_t power, uint8_t x, uint8_t y, uint8_t direction) {
     if (!power || field_get(x, y) == BLOCK_WALL) {
         return;
     }
     int i = flame_create(cur_time, owner, x, y);
     if (field_get(x, y) == BLOCK_BOX) {
         flames[i].spawn_pwrup_type = random_pwrup();
+        field_set(x, y, BLOCK_EMPTY);
         map_upd_create(x, y, BLOCK_EMPTY);
     } else {
         if (direction == DIRECTION_LEFT) {
@@ -119,7 +114,7 @@ static void spawn_flames(time_t cur_time, player_t *owner, uint8_t power, uint8_
     }
 }
 
-static void explode_dyn(int i, time_t cur_time) {
+static void explode_dyn(int i, millis_t cur_time) {
     if (!(dynamites[i].owner->active_pwrups & ACTIVE_PWRUP_REMOTE) || dynamites[i].remote_detonated) {
         ++dynamites[i].owner->count;
     }
@@ -132,12 +127,12 @@ static void explode_dyn(int i, time_t cur_time) {
     spawn_flames(cur_time, dynamites[i].owner, dynamites[i].power, x, y + (uint8_t) 1, DIRECTION_DOWN);
 }
 
-static time_t last_fill;
+static millis_t last_fill;
 static int fill_x = 1;
 static int fill_y = 1;
 static uint8_t fill_direction = DIRECTION_RIGHT;
 
-int do_tick(uint16_t timer, time_t cur_time) {
+int do_tick(uint16_t timer, millis_t cur_time) {
     int i;
     if (!timer && (!last_fill || cur_time - last_fill >= 1000 / FILL_SPEED)) {
         last_fill = cur_time;
@@ -202,7 +197,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
     }
 
     for (i = 0; i < dyn_cnt; ++i) {
-        if (cur_time - dynamites[i].created >= DYNAMITE_TIMER * 1000
+        if ((cur_time - dynamites[i].created >= DYNAMITE_TIMER * 1000 && !dynamites[i].remote_detonated)
             || (dynamites[i].remote_detonated && dynamites[i].owner->detonate_pressed)) {
 
             explode_dyn(i, cur_time);
@@ -223,60 +218,63 @@ int do_tick(uint16_t timer, time_t cur_time) {
             }
             dyn_destroy(i--);
         } else {
-            if (dynamites[i].kicked_by) {
+            if (dynamites[i].is_sliding) {
                 if (dynamites[i].slide_direction == DIRECTION_LEFT) {
                     int x = (int) dynamites[i].x;
                     dynamites[i].x -= (double) DYNAMITE_SLIDE_V / TICK_RATE;
                     if (field_get(x - 1, (int) dynamites[i].y) != BLOCK_EMPTY && dynamites[i].x - .5 <= x) {
                         dynamites[i].x = x + .5;
-                        dynamites[i].kicked_by = NULL;
+                        dynamites[i].is_sliding = 0;
                     }
                 } else if (dynamites[i].slide_direction == DIRECTION_UP) {
                     int y = (int) dynamites[i].y;
                     dynamites[i].y -= (double) DYNAMITE_SLIDE_V / TICK_RATE;
                     if (field_get((int) dynamites[i].x, y - 1) != BLOCK_EMPTY && dynamites[i].y - .5 <= y) {
                         dynamites[i].y = y + .5;
-                        dynamites[i].kicked_by = NULL;
+                        dynamites[i].is_sliding = 0;
                     }
                 } else if (dynamites[i].slide_direction == DIRECTION_RIGHT) {
                     int x = (int) dynamites[i].x + 1;
                     dynamites[i].x += (double) DYNAMITE_SLIDE_V / TICK_RATE;
                     if (field_get(x, (int) dynamites[i].y) != BLOCK_EMPTY && dynamites[i].x + .5 >= x) {
                         dynamites[i].x = x - .5;
-                        dynamites[i].kicked_by = NULL;
+                        dynamites[i].is_sliding = 0;
                     }
                 } else if (dynamites[i].slide_direction == DIRECTION_DOWN) {
                     int y = (int) dynamites[i].y + 1;
                     dynamites[i].y += (double) DYNAMITE_SLIDE_V / TICK_RATE;
                     if (field_get((int) dynamites[i].x, y) != BLOCK_EMPTY && dynamites[i].y + .5 >= y) {
                         dynamites[i].y = y - .5;
-                        dynamites[i].kicked_by = NULL;
+                        dynamites[i].is_sliding = 0;
                     }
                 }
             }
             player_t *it;
             for (it = players; it; it = it->next) {
-                if (!it->dead && player_intersects(it, dynamites[i].x, dynamites[i].y)) {
-                    if (it->active_pwrups & ACTIVE_PWRUP_KICK && dynamites[i].kicked_by != it
-                        && it->input & (INPUT_LEFT | INPUT_UP | INPUT_RIGHT | INPUT_DOWN)) {
-
-                        dynamites[i].kicked_by = it;
+                if (!it->dead && player_intersects(it, dynamites[i].x - .5, dynamites[i].y - .5)) {
+                    if (it->active_pwrups & ACTIVE_PWRUP_KICK && dynamites[i].last_touched_by != it) {
+                        dynamites[i].last_touched_by = it;
                         if (it->input & INPUT_LEFT) {
+                            dynamites[i].is_sliding = 1;
                             dynamites[i].slide_direction = DIRECTION_LEFT;
                         } else if (it->input & INPUT_UP) {
+                            dynamites[i].is_sliding = 1;
                             dynamites[i].slide_direction = DIRECTION_UP;
                         } else if (it->input & INPUT_RIGHT) {
+                            dynamites[i].is_sliding = 1;
                             dynamites[i].slide_direction = DIRECTION_RIGHT;
                         } else if (it->input & INPUT_DOWN) {
+                            dynamites[i].is_sliding = 1;
                             dynamites[i].slide_direction = DIRECTION_DOWN;
                         }
-                    } else if (it->pick_up_pressed && !it->carrying_dyn) {
-                        dynamites[i].kicked_by = NULL;
+                    }
+                    if (it->pick_up_pressed && !it->carrying_dyn) {
+                        dynamites[i].is_sliding = 0;
                         dynamites[i].carrier = it;
                         it->carrying_dyn = 1;
                     }
-                } else if (it == dynamites[i].kicked_by) {
-                    dynamites[i].kicked_by = NULL;
+                } else if (it == dynamites[i].last_touched_by) {
+                    dynamites[i].last_touched_by = NULL;
                 }
             }
         }
@@ -295,7 +293,6 @@ int do_tick(uint16_t timer, time_t cur_time) {
             --it->count;
         }
 
-        double actual_speed = it->speed;
         uint16_t directional_input = it->input & (uint16_t) (INPUT_LEFT | INPUT_UP | INPUT_RIGHT | INPUT_DOWN);
         if (directional_input == (INPUT_DOWN | INPUT_LEFT | INPUT_UP)
             || directional_input == (INPUT_UP | INPUT_RIGHT | INPUT_DOWN)) {
@@ -305,11 +302,9 @@ int do_tick(uint16_t timer, time_t cur_time) {
                    || directional_input == (INPUT_RIGHT | INPUT_DOWN | INPUT_LEFT)) {
 
             it->input &= ~(INPUT_LEFT | INPUT_RIGHT);
-        } else if (directional_input == (INPUT_LEFT | INPUT_UP) || directional_input == (INPUT_UP | INPUT_RIGHT)
-            || directional_input == (INPUT_RIGHT | INPUT_DOWN) || directional_input == (INPUT_DOWN | INPUT_LEFT)) {
+        } else if ((directional_input & INPUT_LEFT && directional_input & INPUT_RIGHT)
+                   || (directional_input & INPUT_UP && directional_input & INPUT_DOWN)) {
 
-            actual_speed *= sqrt(2) / 2;
-        } else if ((directional_input & (INPUT_LEFT | INPUT_RIGHT)) || (directional_input & (INPUT_UP | INPUT_DOWN))) {
             it->input &= ~(INPUT_LEFT | INPUT_UP | INPUT_RIGHT | INPUT_DOWN);
         }
 
@@ -317,7 +312,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
             it->direction = DIRECTION_LEFT;
             int y = (int) it->y;
             int x = (int) it->x - 1;
-            it->x -= actual_speed / TICK_RATE;
+            it->x -= (double) it->speed / TICK_RATE;
             if ((field_get(x, y - 1) != BLOCK_EMPTY && player_intersects(it, x, y - 1))
                 || (field_get(x, y) != BLOCK_EMPTY && player_intersects(it, x, y))
                 || (field_get(x, y + 1) != BLOCK_EMPTY && player_intersects(it, x, y + 1))) {
@@ -328,7 +323,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
             it->direction = DIRECTION_UP;
             int x = (int) it->x;
             int y = (int) it->y - 1;
-            it->y -= actual_speed / TICK_RATE;
+            it->y -= (double) it->speed / TICK_RATE;
             if ((field_get(x - 1, y) != BLOCK_EMPTY && player_intersects(it, x - 1, y))
                 || (field_get(x, y) != BLOCK_EMPTY && player_intersects(it, x, y))
                 || (field_get(x + 1, y) != BLOCK_EMPTY && player_intersects(it, x + 1, y))) {
@@ -339,7 +334,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
             it->direction = DIRECTION_RIGHT;
             int y = (int) it->y;
             int x = (int) it->x + 1;
-            it->x += actual_speed / TICK_RATE;
+            it->x += (double) it->speed / TICK_RATE;
             if ((field_get(x, y - 1) != BLOCK_EMPTY && player_intersects(it, x, y - 1))
                 || (field_get(x, y) != BLOCK_EMPTY && player_intersects(it, x, y))
                 || (field_get(x, y + 1) != BLOCK_EMPTY && player_intersects(it, x, y + 1))) {
@@ -350,7 +345,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
             it->direction = DIRECTION_DOWN;
             int x = (int) it->x;
             int y = (int) it->y + 1;
-            it->y += actual_speed / TICK_RATE;
+            it->y += (double) it->speed / TICK_RATE;
             if ((field_get(x - 1, y) != BLOCK_EMPTY && player_intersects(it, x - 1, y))
                 || (field_get(x, y) != BLOCK_EMPTY && player_intersects(it, x, y))
                 || (field_get(x + 1, y) != BLOCK_EMPTY && player_intersects(it, x + 1, y))) {
@@ -418,7 +413,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
                             break;
                         case PWRUP_SPEED:
                             if (it->speed < MAX_SPEED) {
-                                ++it->speed;
+                                it->speed += SPEED_INC_STEP;
                             }
                             break;
                         case PWRUP_REMOTE:
@@ -427,7 +422,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
                             it->count = 1;
                             break;
                         case PWRUP_COUNT:
-                            if (it->max_count < MAX_COUNT) {
+                            if (it->max_count < MAX_COUNT && !(it->active_pwrups & ACTIVE_PWRUP_REMOTE)) {
                                 ++it->max_count;
                                 ++it->count;
                             }
@@ -453,7 +448,7 @@ int do_tick(uint16_t timer, time_t cur_time) {
     return 0;
 }
 
-void reset_game(void) {
+void setup_game(void) {
     if (field) {
         free(field);
         field = NULL;
@@ -484,4 +479,6 @@ void reset_game(void) {
         it->pick_up_pressed = 0;
         it->carrying_dyn = 0;
     }
+    init_field(FIELD_WIDTH, FIELD_HEIGHT);
+    send_game_start(field, (uint8_t) w, (uint8_t) h);
 }

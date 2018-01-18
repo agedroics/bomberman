@@ -1,9 +1,9 @@
-#include "object.h"
+#include <object.h>
 
 dyn_t dynamites[256];
 uint8_t dyn_cnt;
 
-void dyn_create(time_t cur_time, player_t *owner) {
+void dyn_create(millis_t cur_time, player_t *owner) {
     if (dyn_cnt == 256) {
         return;
     }
@@ -15,7 +15,8 @@ void dyn_create(time_t cur_time, player_t *owner) {
     dyn->y = (int) owner->y + .5;
     dyn->power = owner->power;
     dyn->remote_detonated = owner->active_pwrups & ACTIVE_PWRUP_REMOTE;
-    dyn->kicked_by = NULL;
+    dyn->is_sliding = 0;
+    dyn->last_touched_by = NULL;
     ++dyn_cnt;
 }
 
@@ -27,12 +28,12 @@ void dyn_destroy(int i) {
 flame_t flames[256];
 uint8_t flame_cnt;
 
-int flame_create(time_t created, player_t *owner, uint8_t x, uint8_t y) {
+int flame_create(millis_t cur_time, player_t *owner, uint8_t x, uint8_t y) {
     if (flame_cnt == 256) {
         return 255;
     }
     flame_t *flame = flames + flame_cnt;
-    flame->created = created;
+    flame->created = cur_time;
     flame->owner = owner;
     flame->x = x;
     flame->y = y;
@@ -48,7 +49,7 @@ void flame_destroy(int i) {
 pwrup_t pwrups[256];
 uint8_t pwrup_cnt;
 
-void pwrup_create(time_t cur_time, uint8_t x, uint8_t y, uint8_t type) {
+void pwrup_create(millis_t cur_time, uint8_t x, uint8_t y, uint8_t type) {
     if (pwrup_cnt == 256) {
         return;
     }

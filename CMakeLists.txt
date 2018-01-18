@@ -13,7 +13,7 @@ find_package(SFML REQUIRED system window graphics network audio)
 include_directories(${SFML_INCLUDE_DIR})
 
 set(COMMON_FOLDER src/common)
-set(COMMON ${COMMON_FOLDER}/include/protocol.h ${COMMON_FOLDER}/reader.c ${COMMON_FOLDER}/include/reader.h ${COMMON_FOLDER}/include/utils.h)
+set(COMMON ${COMMON_FOLDER}/include/protocol.h ${COMMON_FOLDER}/reader.c ${COMMON_FOLDER}/include/reader.h ${COMMON_FOLDER}/utils.c ${COMMON_FOLDER}/include/utils.h)
 
 
 set(CLIENT_FOLDER src/client)

@@ -2,7 +2,7 @@
 #define BOMBERMAN_PACKET_H
 
 #include <sys/socket.h>
-#include "object.h"
+#include <object.h>
 
 /**
  * @return success

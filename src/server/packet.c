@@ -1,4 +1,4 @@
-#include "packet.h"
+#include <packet.h>
 
 int send_msg(int fd, void *msg, size_t size) {
     size_t bytes_sent = 0;
