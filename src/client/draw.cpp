@@ -320,39 +320,60 @@ void GameWindow::drawGame() {
 
 void GameWindow::drawGameEnding() {
     sf::Text text;
+    sf::Sprite sprite;
+
+    sprite.setTexture(medals);
     text.setFont(font);
     text.setCharacterSize(26);
 
-    if (winner_cnt == 1) {
+    if (winner_cnt > 0) {
         text.setColor(sf::Color::Black);
         text.setString("CONGRATULATIONS!");
         text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 180);
         draw(text);
+    }
+    text.setCharacterSize(32);
+
+    if (winner_cnt == 1) {
+        sprite.setTextureRect(sf::IntRect(0, 0, 80, 80));
+        sprite.setPosition(200, 200);
+        draw(sprite);
+
         text.setColor(sf::Color::Red);
         text.setString(player_infos[winner_ids[0]].name);
         text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 300);
         draw(text);
     } else if (winner_cnt > 1) {
-        text.setColor(sf::Color::Black);
-        text.setString("CONGRATULATIONS!");
-        text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 180);
-        draw(text);
+
         for (int i = 0; i < winner_cnt; ++i) {
             if( i == 0 ) {
                 text.setColor(sf::Color(255,215,0));
                 text.setString(player_infos[winner_ids[i]].name);
+                text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 290);
+                draw(text);
+
+                sprite.setTextureRect(sf::IntRect(0, 0, 80, 80));
+                sprite.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2 - 100, 260);
+                draw(sprite);
             } else if( i == 1 ) {
                 text.setColor(sf::Color(192,192,192));
                 text.setString(player_infos[winner_ids[i]].name);
+                text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 390);
+                draw(text);
+
+                sprite.setTextureRect(sf::IntRect(80, 0, 80, 80));
+                sprite.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2 - 100, 360);
+                draw(sprite);
             } else if( i == 2 ) {
                 text.setColor(sf::Color(205, 127, 50));
                 text.setString(player_infos[winner_ids[i]].name);
-            } else if(i == 3 || i == 4) {
-                text.setColor(sf::Color::Black);
-                text.setString(player_infos[winner_ids[i]].name);
+                text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 490);
+                draw(text);
+
+                sprite.setTextureRect(sf::IntRect(160, 0, 80, 80));
+                sprite.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2 - 100, 460);
+                draw(sprite);
             }
-            text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 260 + 60 * i);
-            draw(text);
         }
     } else {
         text.setColor(sf::Color::Black);
