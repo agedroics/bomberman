@@ -111,10 +111,17 @@ static void *client_thread(void *arg) {
         switch (*data) {
             case JOIN_REQUEST:
                 data = get_bytes(&reader, 23);
-                if (player || !data) {
+                if (!data) {
                     continue;
                 }
                 response[0] = JOIN_RESPONSE;
+                if (player) {
+                    response[1] = JOIN_RESPONSE_REPEATED;
+                    if (!send_msg(fd, response, 2)) {
+                        fprintf(stderr, "Failed to send join response: %s\n", strerror(errno));
+                        disconnect_client(fd, player);
+                    }
+                }
                 if (state != STATE_LOBBY) {
                     response[1] = JOIN_RESPONSE_BUSY;
                     if (!send_msg(fd, response, 2)) {

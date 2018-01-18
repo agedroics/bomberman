@@ -148,6 +148,9 @@ int main(int argc, char **argv) {
             case JOIN_RESPONSE_FULL:
                 fprintf(stderr, "Server is full\n");
                 return -1;
+            case JOIN_RESPONSE_REPEATED:
+                fprintf(stderr, "Client is already connected\n");
+                return -1;
             default:
                 break;
         }
@@ -164,7 +167,7 @@ int main(int argc, char **argv) {
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
     GameWindow window(id, settings);
-    window.setVerticalSyncEnabled(true);
+    window.setFramerateLimit(60);
     sf::Event event;
 
     uint16_t input = 0;

@@ -34,6 +34,8 @@ private:
 
     void drawField();
 
+    void drawFadingBoxes();
+
     void drawPlayers();
 
     void drawDynamites();

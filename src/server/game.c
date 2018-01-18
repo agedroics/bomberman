@@ -1,4 +1,3 @@
-#include <object.h>
 #include <game.h>
 
 static uint8_t *field;
@@ -74,6 +73,15 @@ static void init_field(int width, int height) {
     }
 }
 
+/*
+ * CHANCES
+ *
+ * power: 10%
+ * speed: 10%
+ * remote control: 5%
+ * dynamite count: 10%
+ * kick: 5%
+ */
 static uint8_t random_pwrup(void) {
     int rnd = rand() % 20;
     if (rnd <= 1) {
@@ -254,16 +262,22 @@ int do_tick(uint16_t timer, millis_t cur_time) {
                 if (!it->dead && player_intersects(it, dynamites[i].x - .5, dynamites[i].y - .5)) {
                     if (it->active_pwrups & ACTIVE_PWRUP_KICK && dynamites[i].last_touched_by != it) {
                         dynamites[i].last_touched_by = it;
-                        if (it->input & INPUT_LEFT) {
+                        if (it->input & INPUT_LEFT
+                            && (!dynamites[i].is_sliding || dynamites[i].slide_direction == DIRECTION_RIGHT)) {
+
                             dynamites[i].is_sliding = 1;
                             dynamites[i].slide_direction = DIRECTION_LEFT;
-                        } else if (it->input & INPUT_UP) {
+                        } else if (it->input & INPUT_UP
+                                   && (!dynamites[i].is_sliding || dynamites[i].slide_direction == DIRECTION_DOWN)) {
+
                             dynamites[i].is_sliding = 1;
                             dynamites[i].slide_direction = DIRECTION_UP;
-                        } else if (it->input & INPUT_RIGHT) {
+                        } else if (it->input & INPUT_RIGHT
+                                   && (!dynamites[i].is_sliding || dynamites[i].slide_direction == DIRECTION_LEFT)) {
                             dynamites[i].is_sliding = 1;
                             dynamites[i].slide_direction = DIRECTION_RIGHT;
-                        } else if (it->input & INPUT_DOWN) {
+                        } else if (it->input & INPUT_DOWN
+                                   && (!dynamites[i].is_sliding || dynamites[i].slide_direction == DIRECTION_UP)) {
                             dynamites[i].is_sliding = 1;
                             dynamites[i].slide_direction = DIRECTION_DOWN;
                         }

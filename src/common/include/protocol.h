@@ -20,6 +20,7 @@
 #define JOIN_RESPONSE_SUCCESS 0x00u
 #define JOIN_RESPONSE_BUSY 0x01u
 #define JOIN_RESPONSE_FULL 0x02u
+#define JOIN_RESPONSE_REPEATED 0x03u
 
 /*
  * client << server (TCP)

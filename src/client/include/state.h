@@ -77,4 +77,18 @@ extern uint8_t pwrup_cnt;
 extern uint8_t winner_ids[256];
 extern uint8_t winner_cnt;
 
+typedef struct box_fade {
+    uint8_t x;
+    uint8_t y;
+    int keyframe_start;
+    struct box_fade *prev;
+    struct box_fade *next;
+} box_fade_t;
+
+extern box_fade_t *box_fades;
+
+void box_fade_create(uint8_t x, uint8_t y);
+
+box_fade_t *box_fade_destroy(box_fade_t *box_fade);
+
 #endif //BOMBERMAN_OBJECT_H

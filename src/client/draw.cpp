@@ -1,12 +1,10 @@
 #include <draw.hpp>
 
-static sf::Font font;
-
 GameWindow::GameWindow(uint8_t id, sf::ContextSettings &settings) :
         sf::RenderWindow(sf::VideoMode(1024, 768), "Bomberman", sf::Style::Default, settings),
         id(id) {
 
-    if (!font.loadFromFile("assets/OpenSans-Regular.ttf")) {
+    if (!font.loadFromFile("assets/FIPPS___.TTF")) {
         throw std::runtime_error("Failed to load font");
     }
     if (!playerTexture.loadFromFile("assets/player.png")) {
@@ -47,46 +45,36 @@ uint16_t GameWindow::getInput() {
     return input;
 }
 
-static void setTextPosition(sf::Text &text, float x, float y) {
-    text.setPosition((int) x, (int) (y - text.getCharacterSize() / 6));
-}
-
 void GameWindow::drawLobby() {
     sf::Text text;
     text.setFont(font);
     text.setCharacterSize(16);
-    text.setColor(sf::Color::Black);
     for (int i = 0; i < player_cnt; ++i) {
         if (players[i].id == id) {
-            text.setStyle(sf::Text::Style::Bold);
+            text.setColor(sf::Color::Blue);
         } else {
-            text.setStyle(sf::Text::Style::Regular);
+            text.setColor(sf::Color::Black);
         }
         text.setString(player_infos[players[i].id].name);
-        setTextPosition(text, 50, 60 + 40 * i);
+        text.setPosition(20, 60 + 40 * i);
         draw(text);
 
-        sf::CircleShape readyCircle(10);
-        readyCircle.setPosition(20, 60 + 40 * i);
-        readyCircle.setOutlineThickness(1);
-        readyCircle.setOutlineColor(sf::Color::Black);
+        text.setColor(sf::Color::Black);
         if (players[i].ready) {
-            readyCircle.setFillColor(sf::Color(50, 205, 50));
-        } else {
-            readyCircle.setFillColor(sf::Color::White);
+            text.setString("READY");
+            text.setPosition(getSize().x - 20 - text.getLocalBounds().width, 60 + 40 * i);
+            draw(text);
         }
-        draw(readyCircle);
     }
 
     text.setStyle(sf::Text::Style::Regular);
     text.setString("Press c to toggle controls");
-    setTextPosition(text, getSize().x / 2 - text.getLocalBounds().width / 2, getSize().y - 20 - text.getLocalBounds().height);
+    text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, getSize().y - 20 - text.getLocalBounds().height);
     draw(text);
 
     text.setCharacterSize(24);
-    text.setString("LOBBY");
-    text.setStyle(sf::Text::Bold);
-    setTextPosition(text, getSize().x / 2 - text.getLocalBounds().width / 2, 20);
+    text.setString("BOMBERMAN");
+    text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 20);
     draw(text);
 
     if (controlsOpen) {
@@ -110,19 +98,19 @@ void GameWindow::drawControls() {
     text.setCharacterSize(16);
     text.setColor(sf::Color::Black);
     text.setString("Ready/plant: Space");
-    setTextPosition(text, x + 20, y + 20);
+    text.setPosition(x + 20, y + 20);
     draw(text);
 
     text.setString("Movement: WASD");
-    setTextPosition(text, x + 20, y + 60);
+    text.setPosition(x + 20, y + 60);
     draw(text);
 
     text.setString("Pick up bomb: E");
-    setTextPosition(text, x + 20, y + 100);
+    text.setPosition(x + 20, y + 100);
     draw(text);
 
     text.setString("Remote detonator: F");
-    setTextPosition(text, x + 20, y + 140);
+    text.setPosition(x + 20, y + 140);
     draw(text);
 }
 
@@ -156,13 +144,33 @@ void GameWindow::drawField() {
     }
 }
 
+void GameWindow::drawFadingBoxes() {
+    sf::Sprite fadingBox(objectTexture);
+    fadingBox.setScale(2, 2);
+    for (box_fade_t *boxFade = box_fades; boxFade; boxFade = boxFade->next) {
+        if (!boxFade->keyframe_start) {
+            boxFade->keyframe_start = keyframe;
+        }
+        if (keyframe - boxFade->keyframe_start == 4) {
+            boxFade = box_fade_destroy(boxFade);
+            if (!boxFade) {
+                break;
+            }
+        } else {
+            int offset = (keyframe - boxFade->keyframe_start) * 16;
+            fadingBox.setTextureRect(sf::IntRect(64 + offset, 0, 16, 16));
+            fadingBox.setPosition(32 * boxFade->x, 32 * boxFade->y);
+            draw(fadingBox);
+        }
+    }
+}
+
 void GameWindow::drawPlayers() {
     sf::Sprite player(playerTexture);
     player.setScale(2, 2);
     sf::Text name;
     name.setFont(font);
-    name.setCharacterSize(16);
-    name.setStyle(sf::Text::Style::Bold);
+    name.setCharacterSize(12);
     for (int i = 0; i < player_cnt; ++i) {
         if (!players[i].dead) {
             int offset;
@@ -203,13 +211,13 @@ void GameWindow::drawPlayers() {
             draw(player);
             if (players[i].id == id) {
                 name.setString("You");
-                name.setColor(sf::Color::Cyan);
+                name.setColor(sf::Color::Yellow);
             } else {
                 name.setString(player_infos[players[i].id].name);
                 name.setColor(sf::Color::White);
             }
 
-            name.setPosition((int) (players[i].x * 3.2 - name.getLocalBounds().width / 2), pos.y - 28);
+            name.setPosition((int) (players[i].x * 3.2 - name.getLocalBounds().width / 2), pos.y - 24);
             draw(name);
         }
     }
@@ -293,13 +301,14 @@ void GameWindow::drawPwrups() {
 }
 
 void GameWindow::drawGame() {
-    if (get_milliseconds() - lastKeyframe >= 200) {
+    if (get_milliseconds() - lastKeyframe >= 150) {
         ++keyframe;
         lastKeyframe = get_milliseconds();
     }
     drawField();
-    drawDynamites();
     drawFlames();
     drawPwrups();
+    drawDynamites();
+    drawFadingBoxes();
     drawPlayers();
 }

@@ -41,3 +41,33 @@ uint8_t pwrup_cnt;
 
 uint8_t winner_ids[256];
 uint8_t winner_cnt;
+
+box_fade_t *box_fades;
+
+void box_fade_create(uint8_t x, uint8_t y) {
+    box_fade_t *box_fade = malloc(sizeof(box_fade_t));
+    box_fade->x = x;
+    box_fade->y = y;
+    box_fade->keyframe_start = 0;
+    box_fade->prev = NULL;
+    box_fade->next = box_fades;
+    if (box_fades) {
+        box_fades->prev = box_fade;
+    }
+    box_fades = box_fade;
+}
+
+box_fade_t *box_fade_destroy(box_fade_t *box_fade) {
+    box_fade_t *next = box_fade->next;
+    if (next) {
+        next->prev = box_fade->prev;
+    }
+    if (box_fade->prev) {
+        box_fade->prev->next = next;
+    }
+    if (box_fade == box_fades) {
+        box_fades = next;
+    }
+    free(box_fade);
+    return next;
+}

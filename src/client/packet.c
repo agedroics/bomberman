@@ -1,4 +1,3 @@
-#include <state.h>
 #include <packet.h>
 
 int send_join_request(int fd, char *nickname) {
@@ -130,6 +129,9 @@ int parse_map_update(reader_t *reader) {
         if (!data) {
             return -1;
         }
+        if (field_get(data[0], data[1]) == BLOCK_BOX && data[2] == BLOCK_EMPTY) {
+            box_fade_create((uint8_t) data[0], (uint8_t) data[1]);
+        }
         field_set(data[0], data[1], (uint8_t) data[2]);
     }
     return 0;
@@ -252,5 +254,10 @@ int parse_game_over(reader_t *reader) {
         return -1;
     }
     memcpy(winner_ids, data, winner_cnt);
+    box_fade_t *box_fade;
+    while ((box_fade = box_fades)) {
+        box_fades = box_fade->next;
+        free(box_fade);
+    }
     return 0;
 }
