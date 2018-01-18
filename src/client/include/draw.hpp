@@ -22,8 +22,9 @@ public:
     bool controlsOpen = false;
 
 private:
-    sf::Texture playerTexture;
-    sf::Texture objectTexture;
+    sf::Texture spriteSheet;
+    sf::Texture tileset;
+    sf::Texture medals;
     sf::Font font;
     uint8_t id;
     int keyframe = 0;

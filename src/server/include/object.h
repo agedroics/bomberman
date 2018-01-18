@@ -6,9 +6,9 @@
 #include <protocol.h>
 #include <utils.h>
 
-#define DYNAMITE_TIMER 3
-#define DYNAMITE_SLIDE_V 10
-#define FLAME_TIMEOUT 1
+#define DYNAMITE_TIMER 2
+#define DYNAMITE_SLIDE_V 12
+#define FLAME_TIMEOUT 0.5
 #define PWRUP_TIMEOUT 20
 
 typedef struct {
