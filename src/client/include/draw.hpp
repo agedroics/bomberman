@@ -11,7 +11,7 @@ extern "C" {
 
 class GameWindow : public sf::RenderWindow {
 public:
-    GameWindow(uint8_t id, sf::ContextSettings &settings);
+    explicit GameWindow(uint8_t id);
 
     uint16_t getInput();
 

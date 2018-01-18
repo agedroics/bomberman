@@ -1,9 +1,6 @@
 #include <draw.hpp>
 
-GameWindow::GameWindow(uint8_t id, sf::ContextSettings &settings) :
-        sf::RenderWindow(sf::VideoMode(1024, 768), "Bomberman", sf::Style::Default, settings),
-        id(id) {
-
+GameWindow::GameWindow(uint8_t id) : sf::RenderWindow(sf::VideoMode(1024, 768), "Bomberman"), id(id) {
     if (!font.loadFromFile("assets/FIPPS___.TTF")) {
         throw std::runtime_error("Failed to load font");
     }
@@ -172,7 +169,7 @@ void GameWindow::drawPlayers() {
     player.setScale(2, 2);
     sf::Text name;
     name.setFont(font);
-    name.setCharacterSize(12);
+    name.setCharacterSize(8);
     for (int i = 0; i < player_cnt; ++i) {
         if (!players[i].dead) {
             int offset;
@@ -220,7 +217,7 @@ void GameWindow::drawPlayers() {
                 name.setColor(sf::Color::White);
             }
 
-            name.setPosition((int) (players[i].x * 3.2 - name.getLocalBounds().width / 2), pos.y - 24);
+            name.setPosition((int) (players[i].x * 3.2 - name.getLocalBounds().width / 2), pos.y - 16);
             draw(name);
         }
     }
@@ -324,24 +321,28 @@ void GameWindow::drawGameEnding() {
 
     sprite.setTexture(medals);
     text.setFont(font);
-    text.setCharacterSize(26);
+    text.setCharacterSize(24);
+    text.setColor(sf::Color::Black);
+    text.setString("CONGRATULATIONS!");
+    text.setPosition((int) (getSize().x / 2 - text.getLocalBounds().width / 2), 180);
+    draw(text);
 
     if (winner_cnt > 0) {
         text.setColor(sf::Color::Black);
         text.setString("CONGRATULATIONS!");
-        text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 180);
+        text.setPosition((int) getSize().x / 2 - text.getLocalBounds().width / 2, 180);
         draw(text);
     }
     text.setCharacterSize(32);
 
     if (winner_cnt == 1) {
         sprite.setTextureRect(sf::IntRect(0, 0, 80, 80));
-        sprite.setPosition(200, 200);
+        sprite.setPosition((int) getSize().x / 2 - text.getLocalBounds().width / 2 - 100, 260);
         draw(sprite);
 
-        text.setColor(sf::Color::Red);
+        text.setColor(sf::Color(255,215,0));
         text.setString(player_infos[winner_ids[0]].name);
-        text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 300);
+        text.setPosition((int) getSize().x / 2 - text.getLocalBounds().width / 2, 290);
         draw(text);
     } else if (winner_cnt > 1) {
 
@@ -349,48 +350,47 @@ void GameWindow::drawGameEnding() {
             if( i == 0 ) {
                 text.setColor(sf::Color(255,215,0));
                 text.setString(player_infos[winner_ids[i]].name);
-                text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 290);
+                text.setPosition((int) getSize().x / 2 - text.getLocalBounds().width / 2, 290);
                 draw(text);
 
                 sprite.setTextureRect(sf::IntRect(0, 0, 80, 80));
-                sprite.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2 - 100, 260);
+                sprite.setPosition((int) getSize().x / 2 - text.getLocalBounds().width / 2 - 100, 260);
                 draw(sprite);
             } else if( i == 1 ) {
                 text.setColor(sf::Color(192,192,192));
                 text.setString(player_infos[winner_ids[i]].name);
-                text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 390);
+                text.setPosition((int) getSize().x / 2 - text.getLocalBounds().width / 2, 390);
                 draw(text);
 
                 sprite.setTextureRect(sf::IntRect(80, 0, 80, 80));
-                sprite.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2 - 100, 360);
+                sprite.setPosition((int) getSize().x / 2 - text.getLocalBounds().width / 2 - 100, 360);
                 draw(sprite);
             } else if( i == 2 ) {
                 text.setColor(sf::Color(205, 127, 50));
                 text.setString(player_infos[winner_ids[i]].name);
-                text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 490);
+                text.setPosition((int) getSize().x / 2 - text.getLocalBounds().width / 2, 490);
                 draw(text);
 
                 sprite.setTextureRect(sf::IntRect(160, 0, 80, 80));
-                sprite.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2 - 100, 460);
+                sprite.setPosition((int) getSize().x / 2 - text.getLocalBounds().width / 2 - 100, 460);
                 draw(sprite);
             }
         }
     } else {
         text.setColor(sf::Color::Black);
         text.setString("NO WINNERS");
-        text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 200);
+        text.setPosition((int) getSize().x / 2 - text.getLocalBounds().width / 2, 200);
         draw(text);
     }
 
     text.setColor(sf::Color::Black);
     text.setCharacterSize(24);
     text.setString("GAME OVER");
-    text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 20);
+    text.setPosition((int) (getSize().x / 2 - text.getLocalBounds().width / 2), 20);
     draw(text);
 
-    text.setCharacterSize(20 );
-    text.setStyle(sf::Text::Style::Regular);
+    text.setCharacterSize(16);
     text.setString("Press SPACE to to return to lobby");
-    text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, getSize().y - 20 - text.getLocalBounds().height);
+    text.setPosition((int) (getSize().x / 2 - text.getLocalBounds().width / 2), (int) (getSize().y - 20 - text.getLocalBounds().height));
     draw(text);
 }

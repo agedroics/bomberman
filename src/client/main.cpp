@@ -165,9 +165,7 @@ int main(int argc, char **argv) {
 
     puts("LOBBY STAGE");
 
-    sf::ContextSettings settings;
-    settings.antialiasingLevel = 8;
-    GameWindow window(id, settings);
+    GameWindow window(id);
     window.setFramerateLimit(60);
     sf::Event event;
 
