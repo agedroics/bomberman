@@ -1,6 +1,10 @@
 #include <draw.hpp>
+#include <state.h>
 
 GameWindow::GameWindow(uint8_t id) : sf::RenderWindow(sf::VideoMode(1024, 768), "Bomberman"), id(id) {
+    sf::View view;
+
+    view.setCenter(100, 0);
     if (!font.loadFromFile("assets/FIPPS___.TTF")) {
         throw std::runtime_error("Failed to load font");
     }
@@ -11,6 +15,9 @@ GameWindow::GameWindow(uint8_t id) : sf::RenderWindow(sf::VideoMode(1024, 768), 
         throw std::runtime_error("Failed to load tileset");
     }
     if (!medals.loadFromFile("assets/medals.png")) {
+        throw std::runtime_error("Failed to load medal textures");
+    }
+    if (!clock.loadFromFile("assets/timer.png")) {
         throw std::runtime_error("Failed to load medal textures");
     }
 }
@@ -141,6 +148,7 @@ void GameWindow::drawField() {
             }
         }
     }
+    drawHud();
 }
 
 void GameWindow::drawFadingBoxes() {
@@ -303,6 +311,14 @@ void GameWindow::drawPwrups() {
 }
 
 void GameWindow::drawGame() {
+    sf::View view(sf::FloatRect(0, 0, getSize().x, getSize().y));
+    view.move(0, -40);
+    setView(view);
+
+    sf::RectangleShape rectangle(sf::Vector2f(608, -40));
+    rectangle.setFillColor(sf::Color(222,184,135));
+    draw(rectangle);
+
     if (get_milliseconds() - lastKeyframe >= 50) {
         ++keyframe;
         lastKeyframe = get_milliseconds();
@@ -316,6 +332,10 @@ void GameWindow::drawGame() {
 }
 
 void GameWindow::drawGameEnding() {
+    sf::View view(sf::FloatRect(0, 0, getSize().x, getSize().y));
+    view.move(0, 0);
+    setView(view);
+
     sf::Text text;
     sf::Sprite sprite;
 
@@ -393,4 +413,64 @@ void GameWindow::drawGameEnding() {
     text.setString("Press SPACE to to return to lobby");
     text.setPosition((int) (getSize().x / 2 - text.getLocalBounds().width / 2), (int) (getSize().y - 20 - text.getLocalBounds().height));
     draw(text);
+}
+
+void GameWindow::drawHud(){
+    int user_index = 0;
+
+    sf::Text text;
+    sf::Sprite sprite;
+    sf::Sprite pwrup;
+
+    for (int i = 0; i < player_cnt; ++i) {
+        if (players[i].id == id) {
+            user_index = i;
+        }
+    }
+    text.setFont(font);
+    text.setCharacterSize(16);
+    text.setColor(sf::Color::Black);
+
+    sprite.setTexture(clock);
+    sprite.setPosition(30, -35);
+    draw(sprite);
+
+    text.setPosition(70, -25);
+    text.setString(std::to_string(timer/60)+":"+std::to_string(timer%60));
+    draw(text);
+
+    pwrup.setTexture(tileset);
+    pwrup.setScale(2,2);
+
+    // Speed
+    pwrup.setTextureRect(sf::IntRect(32, 96, 16, 16));
+    pwrup.setPosition(330, -36);
+    draw(pwrup);
+
+    text.setString(std::to_string(players[user_index].speed));
+    text.setPosition(370, -25);
+    draw(text);
+
+    // Balls
+    pwrup.setTextureRect(sf::IntRect(0, 96, 16, 16));
+    pwrup.setPosition(430, -36);
+    draw(pwrup);
+
+    text.setString(std::to_string(players[user_index].count));
+    text.setPosition(470, -25);
+    draw(text);
+
+    //Power
+    pwrup.setTextureRect(sf::IntRect(16, 96, 16, 16));
+    pwrup.setPosition(530, -36);
+    draw(pwrup);
+
+    text.setString(std::to_string(players[user_index].power));
+    text.setPosition(570, -25);
+    draw(text);
+
+
+
+
+
 }

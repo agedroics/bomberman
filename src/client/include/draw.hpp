@@ -27,6 +27,7 @@ private:
     sf::Texture spriteSheet;
     sf::Texture tileset;
     sf::Texture medals;
+    sf::Texture clock;
     sf::Font font;
     uint8_t id;
     int keyframe = 0;
@@ -45,6 +46,8 @@ private:
     void drawFlames();
 
     void drawPwrups();
+
+    void drawHud();
 };
 
 #endif //BOMBERMAN_DRAW_H
