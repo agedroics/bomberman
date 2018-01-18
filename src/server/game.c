@@ -431,9 +431,11 @@ int do_tick(uint16_t timer, millis_t cur_time) {
                             }
                             break;
                         case PWRUP_REMOTE:
-                            it->active_pwrups |= ACTIVE_PWRUP_REMOTE;
-                            it->max_count = 1;
-                            it->count = 1;
+                            if (!(it->active_pwrups & ACTIVE_PWRUP_REMOTE)) {
+                                it->active_pwrups |= ACTIVE_PWRUP_REMOTE;
+                                it->max_count = 1;
+                                it->count = 1;
+                            }
                             break;
                         case PWRUP_COUNT:
                             if (it->max_count < MAX_COUNT && !(it->active_pwrups & ACTIVE_PWRUP_REMOTE)) {

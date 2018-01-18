@@ -41,7 +41,6 @@ uint16_t GameWindow::getInput() {
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::C)) {
         input |= INPUT_BONUS1;
     }
-    lastInput = input;
     return input;
 }
 
@@ -62,19 +61,19 @@ void GameWindow::drawLobby() {
         text.setColor(sf::Color::Black);
         if (players[i].ready) {
             text.setString("READY");
-            text.setPosition(getSize().x - 20 - text.getLocalBounds().width, 60 + 40 * i);
+            text.setPosition((int) (getSize().x - 20 - text.getLocalBounds().width), 60 + 40 * i);
             draw(text);
         }
     }
 
     text.setStyle(sf::Text::Style::Regular);
     text.setString("Press c to toggle controls");
-    text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, getSize().y - 20 - text.getLocalBounds().height);
+    text.setPosition((int) (getSize().x / 2 - text.getLocalBounds().width / 2), (int) (getSize().y - 20 - text.getLocalBounds().height));
     draw(text);
 
     text.setCharacterSize(24);
     text.setString("BOMBERMAN");
-    text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 20);
+    text.setPosition((int) (getSize().x / 2 - text.getLocalBounds().width / 2), 20);
     draw(text);
 
     if (controlsOpen) {
