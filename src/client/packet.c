@@ -191,6 +191,10 @@ static int parse_pwrup_data(reader_t *reader) {
     return 0;
 }
 
+static int player_compar(const void *arg1, const void *arg2) {
+    return ((player_t *) arg1)->y - ((player_t *) arg2)->y;
+}
+
 static int parse_player_data(reader_t *reader) {
     char *data = get_bytes(reader, 1);
     if (!data) {
@@ -219,6 +223,7 @@ static int parse_player_data(reader_t *reader) {
             players[i].count = (uint8_t) data[8];
         }
     }
+    qsort(players, player_cnt, sizeof(player_t), player_compar);
     return 0;
 }
 

@@ -24,11 +24,11 @@ public:
     bool controlsOpen = false;
 
 private:
-    sf::Texture playerTexture;
-    sf::Texture objectTexture;
+    sf::Texture spriteSheet;
+    sf::Texture tileset;
+    sf::Texture medals;
     sf::Font font;
     uint8_t id;
-    uint16_t lastInput = 0;
     int keyframe = 0;
     millis_t lastKeyframe = get_milliseconds();
 
