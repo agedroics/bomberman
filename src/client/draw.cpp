@@ -312,3 +312,59 @@ void GameWindow::drawGame() {
     drawFadingBoxes();
     drawPlayers();
 }
+
+void GameWindow::drawGameEnding() {
+    sf::Text text;
+    text.setFont(font);
+    text.setCharacterSize(26);
+
+    if (winner_cnt == 1) {
+        text.setColor(sf::Color::Black);
+        text.setString("CONGRATULATIONS!");
+        text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 180);
+        draw(text);
+        text.setColor(sf::Color::Red);
+        text.setString(player_infos[winner_ids[0]].name);
+        text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 300);
+        draw(text);
+    } else if (winner_cnt > 1) {
+        text.setColor(sf::Color::Black);
+        text.setString("CONGRATULATIONS!");
+        text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 180);
+        draw(text);
+        for (int i = 0; i < winner_cnt; ++i) {
+            if( i == 0 ) {
+                text.setColor(sf::Color(255,215,0));
+                text.setString(player_infos[winner_ids[i]].name);
+            } else if( i == 1 ) {
+                text.setColor(sf::Color(192,192,192));
+                text.setString(player_infos[winner_ids[i]].name);
+            } else if( i == 2 ) {
+                text.setColor(sf::Color(205, 127, 50));
+                text.setString(player_infos[winner_ids[i]].name);
+            } else if(i == 3 || i == 4) {
+                text.setColor(sf::Color::Black);
+                text.setString(player_infos[winner_ids[i]].name);
+            }
+            text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 260 + 60 * i);
+            draw(text);
+        }
+    } else {
+        text.setColor(sf::Color::Black);
+        text.setString("NO WINNERS");
+        text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 200);
+        draw(text);
+    }
+
+    text.setColor(sf::Color::Black);
+    text.setCharacterSize(24);
+    text.setString("GAME OVER");
+    text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, 20);
+    draw(text);
+
+    text.setCharacterSize(20 );
+    text.setStyle(sf::Text::Style::Regular);
+    text.setString("Press SPACE to to return to lobby");
+    text.setPosition(getSize().x / 2 - text.getLocalBounds().width / 2, getSize().y - 20 - text.getLocalBounds().height);
+    draw(text);
+}

@@ -19,6 +19,8 @@ public:
 
     void drawGame();
 
+    void drawGameEnding();
+
     bool controlsOpen = false;
 
 private:

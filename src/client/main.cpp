@@ -7,6 +7,7 @@ extern "C" {
 
 #define STATE_LOBBY 1
 #define STATE_IN_PROGRESS 2
+#define STATE_GAME_ENDING 3
 
 static int fd;
 static uint8_t id;
@@ -106,8 +107,8 @@ static void *data_thread(void *arg) {
                     free(field);
                     field = nullptr;
                 }
-                puts("LOBBY STAGE");
-                state = STATE_LOBBY;
+                puts("GAME ENDING");
+                state = STATE_GAME_ENDING;
                 break;
             default:
                 break;
@@ -204,6 +205,15 @@ int main(int argc, char **argv) {
                 }
                 if (input & INPUT_BONUS1) {
                     window.controlsOpen = !window.controlsOpen;
+                }
+                prev_input = input;
+            }
+        } else if (state == STATE_GAME_ENDING) {
+            window.drawGameEnding();
+            if (input != prev_input) {
+                if (input & INPUT_PLANT) {
+                    puts("LOBBY STAGE");
+                    state = STATE_LOBBY;
                 }
                 prev_input = input;
             }
