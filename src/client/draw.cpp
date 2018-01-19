@@ -1,7 +1,7 @@
 #include <draw.hpp>
 #include <state.h>
 
-GameWindow::GameWindow(uint8_t id) : sf::RenderWindow(sf::VideoMode(1024, 768), "Bomberman"), id(id) {
+GameWindow::GameWindow(uint8_t id) : sf::RenderWindow(sf::VideoMode(608, 648), "Bomberman"), id(id) {
     sf::View view;
 
     view.setCenter(100, 0);
@@ -315,7 +315,7 @@ void GameWindow::drawGame() {
     view.move(0, -40);
     setView(view);
 
-    sf::RectangleShape rectangle(sf::Vector2f(608, -40));
+    sf::RectangleShape rectangle(sf::Vector2f(field_width*32, -40));
     rectangle.setFillColor(sf::Color(222,184,135));
     draw(rectangle);
 
@@ -416,11 +416,12 @@ void GameWindow::drawGameEnding() {
 }
 
 void GameWindow::drawHud(){
-    int user_index = 0;
 
     sf::Text text;
     sf::Sprite sprite;
     sf::Sprite pwrup;
+
+    int user_index = 0;
 
     for (int i = 0; i < player_cnt; ++i) {
         if (players[i].id == id) {
@@ -444,29 +445,29 @@ void GameWindow::drawHud(){
 
     // Speed
     pwrup.setTextureRect(sf::IntRect(32, 96, 16, 16));
-    pwrup.setPosition(330, -36);
+    pwrup.setPosition((int) field_width*32 - 270, -36);
     draw(pwrup);
 
     text.setString(std::to_string(players[user_index].speed));
-    text.setPosition(370, -25);
+    text.setPosition((int) field_width*32 - 230, -25);
     draw(text);
 
     // Balls
     pwrup.setTextureRect(sf::IntRect(0, 96, 16, 16));
-    pwrup.setPosition(430, -36);
+    pwrup.setPosition((int) field_width*32 - 170, -36);
     draw(pwrup);
 
     text.setString(std::to_string(players[user_index].count));
-    text.setPosition(470, -25);
+    text.setPosition((int) field_width*32 - 130, -25);
     draw(text);
 
     //Power
     pwrup.setTextureRect(sf::IntRect(16, 96, 16, 16));
-    pwrup.setPosition(530, -36);
+    pwrup.setPosition((int) field_width*32 - 70, -36);
     draw(pwrup);
 
     text.setString(std::to_string(players[user_index].power));
-    text.setPosition(570, -25);
+    text.setPosition((int) field_width*32 - 30, -25);
     draw(text);
 
 
