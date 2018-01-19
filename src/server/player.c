@@ -81,9 +81,9 @@ int are_players_nearby(uint8_t x, uint8_t y, uint8_t distance) {
 }
 
 int player_intersects(player_t *player, double x, double y) {
-    double px1 = player->x - (double) PLAYER_SIZE / 2;
-    double px2 = px1 + PLAYER_SIZE;
-    double py1 = player->y - (double) PLAYER_SIZE / 2;
-    double py2 = py1 + PLAYER_SIZE;
-    return px1 < x + 0.99 && px2 > x + 0.01 && py1 < y + 0.99 && py2 > y + 0.01;
+    double px1 = player->x - (double) PLAYER_HITBOX_SIZE / 2;
+    double px2 = px1 + PLAYER_HITBOX_SIZE;
+    double py1 = player->y - (double) PLAYER_HITBOX_SIZE / 2;
+    double py2 = py1 + PLAYER_HITBOX_SIZE;
+    return px1 < x + 1 && px2 > x && py1 < y + 1 && py2 > y;
 }

@@ -136,7 +136,7 @@ void send_objects(uint16_t timer) {
             msg[size++] = it->direction;
             msg[size++] = it->active_pwrups;
             msg[size++] = it->power;
-            msg[size++] = it->speed;
+            msg[size++] = (uint8_t) (it->speed - DEFAULT_SPEED + 1);
             msg[size++] = it->count;
         }
     }

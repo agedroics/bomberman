@@ -322,49 +322,96 @@ int do_tick(uint16_t timer, millis_t cur_time) {
             it->input &= ~(INPUT_LEFT | INPUT_UP | INPUT_RIGHT | INPUT_DOWN);
         }
 
-        if (it->input & INPUT_LEFT) {
+        double move_distance = (double) it->speed / TICK_RATE;
+
+        int x = (int) it->x;
+        int y = (int) it->y;
+
+        int left = it->input & INPUT_LEFT;
+        int up = it->input & INPUT_UP;
+        int right = it->input & INPUT_RIGHT;
+        int down = it->input & INPUT_DOWN;
+
+        if ((left && it->x - move_distance < x + .5 &&
+             ((it->y < y + .5 && field_get(x - 1, y) != BLOCK_EMPTY && field_get(x - 1, y - 1) != BLOCK_EMPTY)
+              || (it->y == y + .5 && field_get(x - 1, y) != BLOCK_EMPTY)
+              || ((it->y > y + .5 && field_get(x - 1, y) != BLOCK_EMPTY && field_get(x - 1, y + 1) != BLOCK_EMPTY))))
+            || (right && it->x + move_distance > x + .5 &&
+                ((it->y < y + .5 && field_get(x + 1, y) != BLOCK_EMPTY && field_get(x + 1, y - 1) != BLOCK_EMPTY)
+                 || (it->y == y + .5 && field_get(x + 1, y) != BLOCK_EMPTY)
+                 || ((it->y > y + .5 && field_get(x + 1, y) != BLOCK_EMPTY && field_get(x + 1, y + 1) != BLOCK_EMPTY))))
+            || (up &&
+                ((it->x > x + .5 && field_get(x, y - 1) == BLOCK_EMPTY && field_get(x + 1, y - 1) != BLOCK_EMPTY && it->x - move_distance < x + .5)
+                 || (it->x < x + .5 && field_get(x, y - 1) == BLOCK_EMPTY && field_get(x - 1, y - 1) != BLOCK_EMPTY && it->x + move_distance > x + .5)))
+            || (down &&
+                ((it->x > x + .5 && field_get(x, y + 1) == BLOCK_EMPTY && field_get(x + 1, y + 1) != BLOCK_EMPTY && it->x - move_distance < x + .5)
+                 || (it->x < x + .5 && field_get(x, y + 1) == BLOCK_EMPTY && field_get(x - 1, y + 1) != BLOCK_EMPTY && it->x + move_distance > x + .5)))) {
+
+            it->x = x + .5;
+
+        } else if (!right && ((left && it->y == y + .5 && (it->x < x + .5 || field_get(x - 1, y) == BLOCK_EMPTY || it->x - move_distance >= x + .5))
+                   || (up &&
+                ((it->x < x + .5 && field_get(x, y - 1) != BLOCK_EMPTY && field_get(x - 1, y - 1) == BLOCK_EMPTY)
+                 || (it->x > x + .5 && field_get(x, y - 1) == BLOCK_EMPTY && field_get(x + 1, y - 1) != BLOCK_EMPTY && it->x - move_distance >= x + .5)))
+                   || (down &&
+                ((it->x < x + .5 && field_get(x, y + 1) != BLOCK_EMPTY && field_get(x - 1, y + 1) == BLOCK_EMPTY)
+                 || (it->x > x + .5 && field_get(x, y + 1) == BLOCK_EMPTY && field_get(x + 1, y + 1) != BLOCK_EMPTY && it->x - move_distance >= x + .5))))) {
+
             it->direction = DIRECTION_LEFT;
-            int y = (int) it->y;
-            int x = (int) it->x - 1;
-            it->x -= (double) it->speed / TICK_RATE;
-            if ((field_get(x, y - 1) != BLOCK_EMPTY && player_intersects(it, x, y - 1))
-                || (field_get(x, y) != BLOCK_EMPTY && player_intersects(it, x, y))
-                || (field_get(x, y + 1) != BLOCK_EMPTY && player_intersects(it, x, y + 1))) {
-                it->x = x + 1 + (double) PLAYER_SIZE / 2;
-            }
-        }
-        if (it->input & INPUT_UP) {
-            it->direction = DIRECTION_UP;
-            int x = (int) it->x;
-            int y = (int) it->y - 1;
-            it->y -= (double) it->speed / TICK_RATE;
-            if ((field_get(x - 1, y) != BLOCK_EMPTY && player_intersects(it, x - 1, y))
-                || (field_get(x, y) != BLOCK_EMPTY && player_intersects(it, x, y))
-                || (field_get(x + 1, y) != BLOCK_EMPTY && player_intersects(it, x + 1, y))) {
-                it->y = y + 1 + (double) PLAYER_SIZE / 2;
-            }
-        }
-        if (it->input & INPUT_RIGHT) {
+            it->x -= move_distance;
+
+        } else if (!left && ((right && it->y == y + .5 && (it->x < x + .5 || field_get(x + 1, y) == BLOCK_EMPTY || it->x + move_distance <= x + .5))
+                   || (up &&
+                       ((it->x > x + .5 && field_get(x, y - 1) != BLOCK_EMPTY && field_get(x + 1, y - 1) == BLOCK_EMPTY)
+                        || (it->x < x + .5 && field_get(x, y - 1) == BLOCK_EMPTY && field_get(x - 1, y - 1) != BLOCK_EMPTY && it->x + move_distance <= x + .5)))
+                   || (down &&
+                       ((it->x > x + .5 && field_get(x, y + 1) != BLOCK_EMPTY && field_get(x + 1, y + 1) == BLOCK_EMPTY)
+                        || (it->x < x + .5 && field_get(x, y + 1) == BLOCK_EMPTY && field_get(x - 1, y + 1) != BLOCK_EMPTY && it->x + move_distance <= x + .5))))) {
+
             it->direction = DIRECTION_RIGHT;
-            int y = (int) it->y;
-            int x = (int) it->x + 1;
-            it->x += (double) it->speed / TICK_RATE;
-            if ((field_get(x, y - 1) != BLOCK_EMPTY && player_intersects(it, x, y - 1))
-                || (field_get(x, y) != BLOCK_EMPTY && player_intersects(it, x, y))
-                || (field_get(x, y + 1) != BLOCK_EMPTY && player_intersects(it, x, y + 1))) {
-                it->x = x - (double) PLAYER_SIZE / 2;
-            }
+            it->x += move_distance;
+
         }
-        if (it->input & INPUT_DOWN) {
+
+        if ((up && it->y - move_distance < y + .5 &&
+                    ((it->x < x + .5 && field_get(x, y - 1) != BLOCK_EMPTY && field_get(x - 1, y - 1) != BLOCK_EMPTY)
+                     || (it->x == x + .5 && field_get(x, y - 1) != BLOCK_EMPTY)
+                     || ((it->x > x + .5 && field_get(x, y - 1) != BLOCK_EMPTY && field_get(x + 1, y - 1) != BLOCK_EMPTY))))
+                   || (down && it->y + move_distance > y + .5 &&
+                       ((it->x < x + .5 && field_get(x, y + 1) != BLOCK_EMPTY && field_get(x - 1, y + 1) != BLOCK_EMPTY)
+                        || (it->x == x + .5 && field_get(x, y + 1) != BLOCK_EMPTY)
+                        || ((it->x > x + .5 && field_get(x, y + 1) != BLOCK_EMPTY && field_get(x + 1, y + 1) != BLOCK_EMPTY))))
+                   || (left &&
+                       ((it->y > y + .5 && field_get(x - 1, y) == BLOCK_EMPTY && field_get(x - 1, y + 1) != BLOCK_EMPTY && it->y - move_distance < y + .5)
+                        || (it->y < y + .5 && field_get(x - 1, y) == BLOCK_EMPTY && field_get(x - 1, y - 1) != BLOCK_EMPTY && it->y + move_distance > y + .5)))
+                   || (right &&
+                       ((it->y > y + .5 && field_get(x + 1, y) == BLOCK_EMPTY && field_get(x + 1, y + 1) != BLOCK_EMPTY && it->y - move_distance < y + .5)
+                        || (it->y < y + .5 && field_get(x + 1, y) == BLOCK_EMPTY && field_get(x + 1, y - 1) != BLOCK_EMPTY && it->y + move_distance > y + .5)))) {
+
+            it->y = y + .5;
+
+        } else if (!down && ((up && it->x == x + .5 && (it->y < y + .5 || field_get(x, y - 1) == BLOCK_EMPTY || it->y - move_distance >= y + .5))
+                   || (left &&
+                       ((it->y < y + .5 && field_get(x - 1, y) != BLOCK_EMPTY && field_get(x - 1, y - 1) == BLOCK_EMPTY)
+                        || (it->y > y + .5 && field_get(x - 1, y) == BLOCK_EMPTY && field_get(x - 1, y + 1) != BLOCK_EMPTY && it->y - move_distance >= y + .5)))
+                   || (right &&
+                       ((it->y < y + .5 && field_get(x + 1, y) != BLOCK_EMPTY && field_get(x + 1, y - 1) == BLOCK_EMPTY)
+                        || (it->y > y + .5 && field_get(x + 1, y) == BLOCK_EMPTY && field_get(x + 1, y + 1) != BLOCK_EMPTY && it->y - move_distance >= y + .5))))) {
+
+            it->direction = DIRECTION_UP;
+            it->y -= move_distance;
+
+        } else if (!up && ((down && it->x == x + .5 && (it->y < y + .5 || field_get(x, y + 1) == BLOCK_EMPTY || it->y + move_distance <= y + .5))
+                   || (left &&
+                       ((it->y > y + .5 && field_get(x - 1, y) != BLOCK_EMPTY && field_get(x - 1, y + 1) == BLOCK_EMPTY)
+                        || (it->y < y + .5 && field_get(x - 1, y) == BLOCK_EMPTY && field_get(x - 1, y - 1) != BLOCK_EMPTY && it->y + move_distance <= y + .5)))
+                   || (right &&
+                       ((it->y > y + .5 && field_get(x + 1, y) != BLOCK_EMPTY && field_get(x + 1, y + 1) == BLOCK_EMPTY)
+                        || (it->y < y + .5 && field_get(x + 1, y) == BLOCK_EMPTY && field_get(x + 1, y - 1) != BLOCK_EMPTY && it->y + move_distance <= y + .5))))) {
+
             it->direction = DIRECTION_DOWN;
-            int x = (int) it->x;
-            int y = (int) it->y + 1;
-            it->y += (double) it->speed / TICK_RATE;
-            if ((field_get(x - 1, y) != BLOCK_EMPTY && player_intersects(it, x - 1, y))
-                || (field_get(x, y) != BLOCK_EMPTY && player_intersects(it, x, y))
-                || (field_get(x + 1, y) != BLOCK_EMPTY && player_intersects(it, x + 1, y))) {
-                it->y = y - (double) PLAYER_SIZE / 2;
-            }
+            it->y += move_distance;
+
         }
 
         it->plant_pressed = 0;

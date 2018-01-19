@@ -5,7 +5,7 @@
 #include <object.h>
 #include <packet.h>
 
-#define TIMER 200
+#define TIMER 120
 #define TICK_RATE 60
 #define FILL_SPEED 10
 #define FIELD_WIDTH 19

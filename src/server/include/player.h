@@ -8,7 +8,7 @@
 #include <pthread.h>
 
 #define MAX_PLAYERS 16
-#define PLAYER_SIZE 0.8
+#define PLAYER_HITBOX_SIZE 0.8
 
 #define DEFAULT_POWER 1
 #define MAX_POWER 4
