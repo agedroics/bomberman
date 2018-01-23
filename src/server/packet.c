@@ -67,7 +67,7 @@ typedef struct {
 } score;
 
 static int score_compar(const void *ptr1, const void *ptr2) {
-    return ((score *) ptr1)->frags - ((score *) ptr2)->frags;
+    return ((score *) ptr2)->frags - ((score *) ptr1)->frags;
 }
 
 void send_game_over(void) {
